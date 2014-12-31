@@ -1,0 +1,823 @@
+/* aldan3 - DOService.java
+ * Copyright (C) 1999-2009 Dmitriy Rogatkin.  All rights reserved.
+ *  $Id: DOService.java,v 1.54 2014/02/01 09:22:55 cvs Exp $                
+ *  Created on Jun 8, 2009
+ *  @author Dmitriy R
+ */
+package org.aldan3.data;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Set;
+
+import javax.sql.DataSource;
+
+import org.aldan3.model.DOFactory;
+import org.aldan3.model.DataObject;
+import org.aldan3.model.Log;
+import org.aldan3.model.ProcessException;
+import org.aldan3.model.ServiceProvider;
+import org.aldan3.model.Field;
+import org.aldan3.util.Sql;
+
+public class DOService implements ServiceProvider {
+	public static final String NAME = "DOService";
+
+	DataSource dataSource;
+
+	public DOService(DataSource dataSource) {
+		this.dataSource = dataSource;
+	}
+
+	/** Retrieves an object from storage with fields as in parameter
+	 *  A retrieved object will have fields filled which were empty in request object.
+	 *  Only one matching object is expected, otherwise an exception will be thrown.
+	 * @param dataObject used as request and response storage
+	 * @return the parameter data object with filled fields
+	 * @throws ProcessException
+	 */
+	public DataObject getObjectLike(final DataObject dataObject) throws ProcessException {
+		StringBuffer q = new StringBuffer("select ");
+		StringBuffer wc = new StringBuffer();
+		makeQueryParts(dataObject, q, wc);
+		Connection con = null;
+		Statement stm = null;
+		ResultSet rs = null;
+		try {
+			con = getConnection();
+			stm = con.createStatement();
+			rs = stm.executeQuery(q.append(" from ").append(dataObject.getName()).append(wc).toString());
+			if (rs.next()) {
+				DataObject result = Sql.createDO(rs, dataObject instanceof DOFactory ? (DOFactory) dataObject
+						: new DOFactory() {
+							@Override
+							public DataObject create() {
+								return dataObject;
+							}
+						});
+				if (rs.next())
+					throw new ProcessException("Query: " + q + " returned multiple objects like " + dataObject);
+				return result;
+			}
+			return null;
+		} catch (SQLException e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, q);
+			throw new ProcessException("SQL exception happened in " + q, e);
+		} catch (IllegalArgumentException iae) {
+			throw new ProcessException("Can't obtain a connection", iae);
+		} finally {
+			release(con, stm, rs);
+			//System.err.println("q:"+q);
+		}
+	}
+
+	public DataObject getObjectLikeWhenExists(final DataObject dataObject, DataObject existObj) throws ProcessException {
+		StringBuffer q = new StringBuffer("select ");
+		StringBuffer wc = new StringBuffer();
+		makeQueryParts(dataObject, q, wc);
+		StringBuffer ewc = new StringBuffer(" and exists (select 1 from ").append(existObj.getName());
+	
+		makeQueryParts(existObj, new StringBuffer(), ewc);
+		ewc.append(')');
+		Connection con = null;
+		Statement stm = null;
+		ResultSet rs = null;
+		try {
+			con = getConnection();
+			stm = con.createStatement();
+			rs = stm.executeQuery(q.append(" from ").append(dataObject.getName()).append(wc).append(ewc).toString());
+			//System.err.println("q:"+q);
+			if (rs.next()) {
+				DataObject result = Sql.createDO(rs, dataObject instanceof DOFactory ? (DOFactory) dataObject
+						: new DOFactory() {
+							@Override
+							public DataObject create() {
+								return dataObject;
+							}
+						});
+				if (rs.next())
+					throw new ProcessException("Query: " + q + " returned multiple objects like " + dataObject);
+				return result;
+			}
+			return null;
+		} catch (SQLException e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, q);
+			throw new ProcessException("SQL exception happened in " + q, e);
+		} catch (IllegalArgumentException iae) {
+			throw new ProcessException("Can't obtain a connection", iae);
+		} finally {
+			release(con, stm, rs);
+		}
+	}
+	
+	public DataObject getObjectByQuery(String query, DOFactory doFactory) throws ProcessException {
+		Connection con = null;
+		Statement stm = null;
+		ResultSet rs = null;
+		try {
+			con = getConnection();
+			stm = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			rs = stm.executeQuery(query);
+			if (rs.next()) {
+				DataObject result = Sql.createDO(rs, doFactory);
+				if (rs.next())
+					throw new ProcessException("Multiple objects matching the query " + query);
+				return result;
+			}
+			return null;
+		} catch (SQLException e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, query);
+			throw new ProcessException("SQL exception happened in " + query, e);
+		} catch (IllegalArgumentException iae) {
+			throw new ProcessException("Can't obtain a connection", iae);
+		} finally {
+			release(con, stm, rs);
+		}
+	}
+
+	public Collection<DataObject> getObjectsNotLike(DataObject dataObject, long from, int size) throws ProcessException {
+		return getObjectsLike(dataObject, from, size, true, null);
+	}
+
+	public Collection<DataObject> getObjectsByQuery(String query, long from, int size) throws ProcessException {
+		return getObjectsByQuery(query, from, size, null);
+	}
+
+	public <D extends DataObject> Collection<D> getObjectsByQuery(String query, long from, int size,
+			DOFactory<D> doFactory) throws ProcessException {
+		Connection con = null;
+		Statement stm = null;
+		ResultSet rs = null;
+		ArrayList<D> result = new ArrayList<D>(size > 0 ? size : 10);
+		try {
+			con = getConnection();
+			stm = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+			if (size > 0)
+				stm.setMaxRows(size); // TODO fetch size
+			String limit = getLimit(from, size);
+			if (limit != null && limit.length() > 0)
+				rs = stm.executeQuery(query + limit);
+			else {
+				rs = stm.executeQuery(query);
+				if (from != 0)
+					scrollTo(rs, from);
+			}
+			while (rs.next()) {
+				result.add(Sql.createDO(rs, doFactory));
+			}
+			return result;
+		} catch (SQLException e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, query);
+			throw new ProcessException("SQL exception happened in " + query, e);
+		} catch (IllegalArgumentException iae) {
+			throw new ProcessException("Can't obtain a connection", iae);
+		} finally {
+			release(con, stm, rs);
+		}
+	}
+
+	public <D extends DataObject> Collection<D> getObjectsLike(D dataObject, long from, int size)
+			throws ProcessException {
+		return getObjectsLike(dataObject, from, size, false, null);
+	}
+
+	/** queries objects by an object prototype
+	 * 
+	 * @param dataObject
+	 * @param from
+	 * @param size
+	 * @param inverse
+	 * @param factory for objects creation
+	 * @return
+	 * @throws ProcessException
+	 */
+	public <D extends DataObject> Collection<D> getObjectsLike(D dataObject, long from, int size, boolean inverse,
+			DOFactory<D> factory) throws ProcessException {
+		StringBuffer q = new StringBuffer("select ");
+		StringBuffer wc = new StringBuffer(128);
+		makeQueryParts(dataObject, q, wc, inverse);
+		return getObjectsByQuery(q.append(" from ").append(dataObject.getName()).append(wc).toString(), from, size,
+				factory != null ? factory : dataObject instanceof DOFactory ? (DOFactory) dataObject : null);
+	}
+
+	/** creates persistent storage (table) based on data object definition
+	 * 
+	 * @param dataObject
+	 * @throws ProcessException
+	 */
+	public void createStorageFor(DataObject dataObject) throws ProcessException {
+		createStorageFor(dataObject.getName(), dataObject.getFields());
+	}
+
+	// TODO figure out how to pass simply class, like createStorageFor(Class<?> object 
+	public void createStorageFor(String name, Set<Field> fields) throws ProcessException {
+		if (name == null || name.length() == 0 || fields == null || fields.size() == 0)
+			throw new IllegalArgumentException("Null or empty parameters are specified");
+		StringBuffer q = new StringBuffer(512);
+		HashSet<String> indexCols = isCreateIndex()?new HashSet<String>():null;
+		q.append("create table IF NOT EXISTS ").append(name).append(" (");
+		boolean first = true;
+		StringBuffer c = new StringBuffer(256);
+		for (Field f : fields) {
+			if (first)
+				first = false;
+			else
+				q.append(", ");
+			if (f.isKey())
+				c.append(", primary key(").append(f.getStoredName()).append(')');
+			else if (f.isIndex()) {
+				if (indexCols == null)
+					c.append(", index(").append(f.getStoredName()).append(')');
+				else
+					indexCols.add(f.getStoredName());
+			}
+			if (f.isUnique())
+				c.append(", UNIQUE(").append(f.getStoredName()).append(')');
+			
+			if (f.getSql() != null && f.getSql().length() > 0)
+				q.append(f.getSql());
+			else {
+				q.append(f.getStoredName()).append(' ').append(f.getType());
+				if (f.getSize() > 0) {
+					q.append('(').append(f.getSize());
+					int prec = f.getPrecision();
+					if (prec > 0)
+						q.append(',').append(prec);
+					q.append(')');
+				}
+			}
+		}
+		// TODO add constraints, check foreign, primary, key, unique
+		if (c.length() > 0)
+			q.append(c);
+		q.append(")");
+		//System.err.printf("sql:%s%n", q);
+		if (updateQuery(q.toString()) < 0)
+			throw new ProcessException("Storage " + name + " has not been created.\n" + q);
+		if (indexCols != null && indexCols.size() > 0) {
+			q.setLength(0);
+			q.append("CREATE INDEX IF NOT EXISTS ").append("IDX_").append(name).append(" ON ").append(name).append('(');
+			Iterator<String> it = indexCols.iterator();
+			if (it.hasNext()) 
+				q.append(it.next());
+			while(it.hasNext())
+				q.append(',').append(it.next());
+			q.append(')');
+			if (updateQuery(q.toString()) < 0)
+				throw new ProcessException("Index IDX_" + name + " has not been created.\n" + q);
+		}
+	}
+
+	/** updates table records not matching pattern object by data object
+	 * 
+	 * @param pattern
+	 * @param dataObject
+	 * @return number of updated records
+	 * @throws ProcessException
+	 */
+	public int updateObjectsNotLike(DataObject pattern, DataObject dataObject) throws ProcessException {
+		return updateObjectsLike(pattern, dataObject, true);
+	}
+
+	/** updates table records matching pattern object by data object
+	 * 
+	 * @param pattern
+	 * @param dataObject
+	 * @return number of updated records
+	 * @throws ProcessException
+	 */
+	public int updateObjectsLike(DataObject pattern, DataObject dataObject) throws ProcessException {
+		return updateObjectsLike(pattern, dataObject, false);
+	}
+
+	/** updates table records matching pattern object by data object
+	 * 
+	 * @param pattern
+	 * @param dataObject
+	 * @param match/mismatch flag
+	 * @return number of updated records
+	 * @throws ProcessException
+	 */
+	public int updateObjectsLike(DataObject pattern, DataObject dataObject, boolean invert) throws ProcessException {
+		StringBuffer q = new StringBuffer("");
+		StringBuffer wc = new StringBuffer(128);
+		makeQueryParts(pattern, q, wc, invert);
+		q.setLength(0);
+		q.append("update ").append(dataObject.getName()).append(" set ");
+		fillKeyValuePairs(dataObject, q);
+		//System.err.printf("Update:%s >< %s%n", q, wc);
+		q.append(wc);
+		return updateQuery(q.toString());
+	}
+
+	/** adds object unless it does exist
+	 * 
+	 * @param dataObject
+	 * @param existObject
+	 * @param keys
+	 * @return
+	 * @throws ProcessException
+	 */
+	/*public int addObject(DataObject dataObject, DataObject existObject, String keys) throws ProcessException {
+		StringBuffer q = new StringBuffer(512);
+		StringBuffer v = new StringBuffer(512);
+		
+	}*/
+	
+	/** adds object unconditionally and no auto generated keys requested
+	 *  
+	 * @param dataObject
+	 * @return
+	 * @throws ProcessException 
+	 */
+	public int addObject(DataObject dataObject) throws ProcessException {
+		StringBuffer q = new StringBuffer(512);
+		StringBuffer v = new StringBuffer(512);
+		Set<Field> fields = dataObject.getFields();
+		q.append("insert into ").append(dataObject.getName()).append(" (");
+		boolean first = true;
+		for (Field f : fields) {
+			if (dataObject.meanFieldFilter(f.getName()) == false)
+				continue;
+			if (first)
+				first = false;
+			else {
+				q.append(", ");
+				v.append(", ");
+			}
+			if (f.getSql() != null && f.getSql().length() > 0)
+				v.append(f.getSql());
+			else
+				v.append(Sql.toSqlString(dataObject.get(f.getName()), getInlineDatePattern()));
+			q.append(f.getStoredName());
+		}
+		q.append(") select ").append(v).append(getSelectValuesTable());
+		//System.err.println("Added:"+q);
+		return updateQuery(q.toString());
+	}
+
+	public int addObject(DataObject dataObject, String keys) throws ProcessException {
+		return addObject(dataObject, keys, null);
+	}
+	
+	static private String start_ius [] = {"insert into ", "TBD", "MERGE INTO "};
+	/** Insert records in table and retrieves auto generated keys back, it can also
+	 * setup on duplicate update, when uniqueness constraints violation happens
+	 * it is covered by merge into for some dataabses
+	 * @param dataObject to insert
+	 * @param keys to retrieve back
+	 * @param updateObject used for update if duplicated condition
+	 * @return number of inserted or updated records
+	 * @throws ProcessException
+	 */
+	public int addObject(DataObject dataObject, String keys, DataObject updateObject) throws ProcessException {
+		StringBuffer q = new StringBuffer(512);
+		int var = getInsertUpdateVariant();
+		q.append(updateObject==null?start_ius[0]:start_ius[var]).append(dataObject.getName()).append(" (");
+		StringBuffer v = new StringBuffer(512);
+		Set<Field> fields = dataObject.getFields();
+		boolean first = true;
+		LinkedList<Field> addedKeySet = null;
+		for (Field f : fields) {
+			if (dataObject.meanFieldFilter(f.getName()) == true)
+				continue;
+			if (first)
+				first = false;
+			else {
+				q.append(", ");
+				v.append(", ");
+			}
+			if (f.getSql() != null && f.getSql().length() > 0)
+				v.append(f.getSql());
+			else
+				v.append('?');
+			q.append(f.getStoredName());
+		}
+		switch(var) {
+		case 0: // MySQL 
+			q.append(") values (").append(v).append(')');
+			if (updateObject != null) {
+				v.setLength(0);
+				fillKeyValuePairs(updateObject, v);
+				if (v.length() > 0)
+					q.append(" ON DUPLICATE KEY UPDATE ").append(v);
+			}
+		case 1:
+			break;
+		case 2:
+			// TODO if keys "" or null, then can be calculated as mean from updateObject
+			if (updateObject != null) {
+				StringBuffer k = new StringBuffer(512);
+				addedKeySet = 
+						appendKeys(updateObject, k, v);
+				if (k.length() > 0)
+					q.append(',').append(k);
+				if (k.length() > 0) {
+					q.append(") KEY (");
+					q.append(k);
+				}
+			}
+			q.append(") VALUES (").append(v).append(')');
+		}
+		
+		// for Oracle
+		//MERGE INTO sgrc_analyzer_track t "
+		// USING (SELECT ? rec_id, ? instance_id, ? row_id from dual) s " + " ON (t.rec_id = s.rec_id) "
+		// WHEN MATCHED THEN UPDATE SET t.instance_id = s.instance_id, t.row_id = s.row_id"
+		// WHEN NOT MATCHED THEN INSERT (rec_id, instance_id, row_id) VALUES (s.rec_id, s.instance_id, s.row_id)";
+		// H2
+		// MERGE INTO AUTHOR (FIRST_NAME, LAST_NAME)
+		// KEY (LAST_NAME)
+		// VALUES ('John', 'Hitchcock')
+		// http://www.jooq.org/doc/2.6/manual/sql-building/sql-statements/merge-statement/
+		Connection con = null;
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		try {
+			con = getConnection();
+			//System.err.println("prepare statement:" + q);
+			String[] ka = null;
+			stm = keys == null ? con.prepareStatement(q.toString()) : con.prepareStatement(q.toString(), ka = keys
+					.split(","));
+			int c = 1;
+			for (Field f : fields) {
+				if (f.getSql() != null && f.getSql().length() > 0 ||
+						dataObject.meanFieldFilter(f.getName()) == true)
+					continue;
+				stm.setObject(c++, Sql.toPreparedSqlValue(dataObject.get(f.getName())));
+			}
+			switch(var) {
+			case 2:
+				if (updateObject != null)
+					for (Field f : addedKeySet) {
+						if (updateObject.meanFieldFilter(f.getName())) //{System.err.printf(">>>>%s%n", f.getName());
+							stm.setObject(c++, Sql.toPreparedSqlValue(updateObject.get(f.getName())));//}
+					}
+				break;
+			}
+			int result = stm.executeUpdate();
+			if (ka != null) {
+				rs = stm.getGeneratedKeys();
+				if (rs.next()) {
+					int ki = 1;
+					for (String k : ka) {
+						Object dobj;
+						dataObject.modifyField(k, dobj=rs.getObject(ki++));
+						//System.err.println("Set key "+k+" to "+dobj);
+					}
+				} else {
+					//System.err.printf("No autoincremented keys retieved:%s%n", keys);
+					for (String k : ka) 
+						dataObject.modifyField(k, null);
+					//throw new ProcessException("Can't retrieve autoincremented keys:" + keys);
+				}
+			}
+			return result;
+		} catch (SQLException e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, q);
+			throw new ProcessException("SQL exception happened in " + q, e);
+		} finally {
+			release(con, stm, rs);
+		}		
+	}
+
+	public int deleteObjectLike(DataObject dataObject) throws ProcessException {
+		StringBuffer q = new StringBuffer("");
+		StringBuffer wc = new StringBuffer(128);
+		makeQueryParts(dataObject, q, wc);
+		q.setLength(0);
+		q.append("delete from ").append(dataObject.getName()).append(wc);
+		return updateQuery(q.toString());
+	}
+
+	public void deleteStorageFor(DataObject dataObject) throws ProcessException {
+		StringBuffer q = new StringBuffer(512);
+		q.append("drop table ").append(dataObject.getName());
+		updateQuery(q.toString());
+		// delete indices if any
+		if (isCreateIndex()) {
+			boolean dropIdx = false;
+			for(Field f:dataObject.getFields()) {
+				if (f.isIndex()) {
+					dropIdx = true;
+					break;
+				}
+			}
+			if (dropIdx) {
+				q.setLength(0);
+				q.append("DROP INDEX IF EXISTS IDX_").append(dataObject.getName());
+				updateQuery(q.toString());
+			}
+		}
+
+	}
+
+	/** Bring all subsequential DO operations in the current thread as a part of
+	 * one transaction
+	 * @throws ProcessException
+	 */
+	public void startTransaction() throws ProcessException {
+		Connection con = transactionContext.get();
+		if (con == null) {
+			try {
+				con = dataSource.getConnection();
+				con.setAutoCommit(false);
+			} catch (SQLException e) {
+				throw new ProcessException("", e);
+			}
+			transactionContext.set(con);
+		}
+	}
+
+	public void commitTransaction() throws ProcessException {
+		finishTransaction(false);
+	}
+
+	public void rollbackTransaction() throws ProcessException {
+		finishTransaction(true);
+	}
+
+	public void spawnTransactionToThread(Thread t) throws ProcessException {
+		throw new UnsupportedOperationException();
+	}
+
+	protected Connection getConnection() throws SQLException {
+		Connection con = transactionContext.get();
+		if (con != null)
+			return con;
+		//System.err.printf("Pool status: %s%n", dataSource);
+		return dataSource.getConnection();
+	}
+
+	private void finishTransaction(boolean rollback) throws ProcessException {
+		Connection con = transactionContext.get();
+		if (con == null) {
+			if (rollback == false)
+				throw new ProcessException("Not in transaction context", new IllegalStateException());
+			else
+				return;
+		}
+		synchronized (con) {
+			try {
+				if (rollback)
+					con.rollback();
+				else
+					con.commit();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				transactionContext.set(null);
+				try {
+					con.setAutoCommit(true);
+					con.close();
+				} catch (SQLException e) {
+
+				}
+			}
+		}
+	}
+
+	private void release(Connection con, Statement stm, ResultSet rs) {
+		try {
+			if (rs != null)
+				rs.close();
+		} catch (SQLException e) {
+		}
+		try {
+			if (stm != null)
+				stm.close();
+		} catch (SQLException e) {
+		}
+
+		Connection con1 = transactionContext.get();
+		if (con1 == null)
+			try {
+				if (con != null)
+					con.close();
+			} catch (SQLException e) {
+			}
+		else if (con != null && con != con1)
+			throw new IllegalStateException(
+					"Trying to release connection not matching a connection in transactional context");
+	}
+
+	private void scrollTo(ResultSet rs, long pos) throws SQLException {
+		for (; (pos - 1) > 0 && rs.next(); pos--)
+			;
+		if (pos > 1) // Exhausted
+			throw new SQLException("Exhausted result set before " + pos);
+	}
+
+	private Set<Field> makeQueryParts(DataObject dataObject, StringBuffer q, StringBuffer wc) {
+		return makeQueryParts(dataObject, q, wc, false);
+	}
+
+	private Set<Field> makeQueryParts(DataObject dataObject, StringBuffer q, StringBuffer wc, boolean inverse) {
+		Set<Field> fields = dataObject.getFields();
+		boolean first = true, firstClause = true;
+		String eq = inverse ? "!=" : "=";
+		String in = inverse ? " not in (" : " in (";
+		for (Field f : fields) {
+			String name = f.getName();
+			if (first == false)
+				q.append(',');
+
+			if (f.getSql() != null && f.getSql().length() > 0) {
+				if (firstClause == false)
+					wc.append(" and ");
+				else
+					wc.append(" where ");
+				wc.append(f.getSql()); // TODO think if it should look like wc.append(name).append(eq).append(f.getSql()); 
+				if (firstClause)
+					firstClause = false;
+			} else if (dataObject.meanFieldFilter(name)) {
+				Object value = dataObject.get(name);
+				if (value != null) {
+					if (firstClause == false)
+						wc.append(" and ");
+					else
+						wc.append(" where ");
+					Class<?> vc = value.getClass();
+					if (vc.isArray()) {
+						if (vc.getComponentType().isPrimitive()) {
+							if (vc.getComponentType() == int.class) {
+								throw new IllegalArgumentException("Primitive types " + vc.getComponentType()
+										+ " not supported in arrays yet");
+							} else if (vc.getComponentType() == char.class) {
+								wc.append(name).append(" = ").append(Sql.toSqlString(value, null));
+								//wc.append(name).append(" like ").append(Sql.toSqlString(value, null));
+							} else
+								throw new IllegalArgumentException("Primitive types " + vc.getComponentType()
+										+ " not supported in arrays yet");
+						} else {
+							Object values[] = (Object[]) value;
+							int n = values.length;
+							if (n > 0) {
+								wc.append(name).append(in);
+								wc.append(Sql.toSqlString(values[0], getInlineDatePattern()));
+								for (int i = 1; i < n; i++)
+									wc.append(',').append(Sql.toSqlString(values[i], getInlineDatePattern()));
+								wc.append(')');
+							}
+						}
+					} else if (Collection.class.isAssignableFrom(value.getClass())) {
+						Collection values = (Collection) value;
+						int n = values.size();
+						if (n > 0) {
+							wc.append(name).append(in);
+							boolean fr = true;
+							for (Object v : values) {
+								if (fr)
+									wc.append(',');
+								wc.append(Sql.toSqlString(v, getInlineDatePattern()));
+								fr = false;
+							}
+							wc.append(']');
+						}
+					} else
+						wc.append(name).append(eq).append(Sql.toSqlString(value, getInlineDatePattern()));
+					if (firstClause)
+						firstClause = false;
+				} else
+					//  else field isnull
+					Log.l.error("Field " + name + " is NULL, although is claimed containing data", null);
+			}
+			q.append(f.getStoredName());
+			if (first)
+				first = false;
+		}
+		return fields;
+	}
+	
+	private StringBuffer fillKeyValuePairs(DataObject dataObject, StringBuffer q) {
+		Set<Field> fields = dataObject.getFields();
+		boolean first = true;
+		for (Field f : fields) {
+			if (first)
+				first = false;
+			else {
+				q.append(", ");
+			}
+			if (f.getSql() != null && f.getSql().length() > 0)
+				q.append(f.getSql());
+			else
+				q.append(f.getStoredName()).append('=').append(
+						Sql.toSqlString(dataObject.get(f.getName()), getInlineDatePattern()));
+		}
+		return q;
+	}
+	
+	private LinkedList<Field> appendKeys(DataObject dataObject, StringBuffer q, StringBuffer v) {
+		if (dataObject == null)
+			return null;
+		LinkedList<Field> result = new LinkedList<Field>();
+		boolean first = q.length() == 0;
+		boolean firstVal = v.length() == 0;
+		for (Field f : dataObject.getFields()) {
+			if (dataObject.meanFieldFilter(f.getName())) {
+				if (first == false) {
+					q.append(',');	
+				} else
+					first = false;
+				if (firstVal == false) {
+					v.append(',');	
+				} else
+					firstVal = false;
+				q.append(f.getStoredName());
+				v.append('?');
+				result.add(f);
+			}
+		}
+		return result;
+	}
+
+	public int updateQuery(String q) throws ProcessException {
+		Connection con = null;
+		Statement stm = null;
+		try {
+			con = getConnection();
+			stm = con.createStatement(); // ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE			
+			return stm.executeUpdate(q); //Statement.RETURN_GENERATED_KEYS
+			//stm.getGeneratedKeys()
+		} catch (SQLException e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, q);
+			throw new ProcessException("SQL exception happened in " + q, e);
+		} finally {
+			release(con, stm, null);
+		}
+	}
+
+	@Override
+	public String getPreferredServiceName() {
+		return NAME;
+	}
+
+	@Override
+	public Object getServiceProvider() {
+		return this;
+	}
+
+	private static final ThreadLocal<Connection> transactionContext = new ThreadLocal<Connection>();
+
+	//////////////////////////////  SQL Specific  ///////////////////////////////////////////
+	/** defines extra select if select value, value... suffix
+	 * for example from DUAL
+	 * @return suffix
+	 */
+	protected String getSelectValuesTable() {
+		return "";
+	}
+
+	/** defines a query addition to get records from certain range
+	 * it is database specific, so if not supported, then method returns null or empty string
+	 * @param start
+	 * @param size
+	 * @return
+	 */
+	protected String getLimit(long start, int size) {
+		if (size > 0)
+			return " LIMIT " + start + ", " + size;
+		return null;
+	}
+	
+	/** specifies format of query to insert a new record when key isn't found
+	 * and update existing using the key
+	 * @return number of variant as <ul>
+	 * <li>0 - on duplicate key update MySQL syntax</li>
+	 * <li>1 - merge into ..  WHEN (NOT) MATCHED THEN Oracle syntax</li>
+	 * <li>2 - merge into .. key H2 syntax</li></ul>
+	 * 
+	 */
+	protected int getInsertUpdateVariant() {
+		return 0;
+	}
+	
+	/** specifies request to create requested indices explicitly
+	 * 
+	 * @return
+	 */
+	protected boolean isCreateIndex() {
+		return false;
+	}
+
+	/** defines a date time field pattern when used inline
+	 *  
+	 * @return pattern, like <code>to_date('''yyyy/MM/dd:hh:mm:ssa''', ''yyyy/mm/dd:hh:mi:ssam'')'</code>
+	 */
+	public String getInlineDatePattern() {
+		return "'CONVERT('''yyyy-MM-dd HH:mm:ss''', DATETIME)'"; // MySQL
+	}
+
+	public String getSQLDateTimePattern() {
+		return "''yyyy-MM-dd HH:mm:ss''";
+	}
+	
+}
