@@ -18,7 +18,7 @@ public class MyFirstJDO {
 
 Annotate all JDO exposed attributes
 
-```
+```java
 @DataRelation
 public class MyFirstJDO {
    @DBField
