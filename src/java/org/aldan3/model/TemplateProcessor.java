@@ -12,7 +12,7 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 public interface TemplateProcessor {
-// TODO make it returning Write
+// TODO make it returning Writer
 	void process(Writer pw, String template, Object model, Properties properties, Locale locale, TimeZone tz) throws ProcessException ;
 	
 }

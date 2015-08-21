@@ -6,7 +6,9 @@
  */
 package org.aldan3.data;
 
+import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,6 +22,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.aldan3.data.util.SimpleField;
 import org.aldan3.model.DOFactory;
 import org.aldan3.model.DataObject;
 import org.aldan3.model.Log;
@@ -217,6 +220,12 @@ public class DOService implements ServiceProvider {
 		createStorageFor(dataObject.getName(), dataObject.getFields());
 	}
 
+	/** Creates a table based on fields description
+	 * 
+	 * @param name
+	 * @param fields
+	 * @throws ProcessException
+	 */
 	// TODO figure out how to pass simply class, like createStorageFor(Class<?> object 
 	public void createStorageFor(String name, Set<Field> fields) throws ProcessException {
 		if (name == null || name.length() == 0 || fields == null || fields.size() == 0)
@@ -274,6 +283,104 @@ public class DOService implements ServiceProvider {
 			if (updateQuery(q.toString()) < 0)
 				throw new ProcessException("Index IDX_" + name + " has not been created.\n" + q);
 		}
+	}
+	
+	/** Modifies storage to possible description change
+	 * It generates and execute ALTER statements
+	 * @param name
+	 * @param fields new fields set for existing storage
+	 * @throws ProcessException
+	 */
+	public void modifyStorageFor(String name, Set<Field> fields) throws ProcessException {
+		Set<Field> currentFields = getStorageDescription(name);
+		StringBuilder alterAdd = null;
+		StringBuilder alterModif = null;
+		StringBuilder alterDrop = null;
+		if (currentFields.size() == 0) { // no storage
+			createStorageFor(name, fields);
+			return;
+		}
+		for (Field f : fields) {
+			Field cf = getFieldByName(f.getName(), currentFields);
+			if (cf == null) {
+				if (alterAdd == null)
+					alterAdd = new StringBuilder("ALTER TABLE ").append(name).append(" ADD ");
+				else
+					alterAdd.append(", ");
+				try {
+					appendFieldDescription(alterAdd, f);
+				} catch (IOException e) {
+					
+				}
+			} else {
+				if(cf.getSize() != f.getSize()) {
+					// TODO check type
+					if (alterModif == null)
+						alterModif = new StringBuilder("ALTER TABLE ").append(name).append(" MODIFY ");
+					else
+						alterModif.append(", ");
+					try {
+						appendFieldDescription(alterModif, f);
+					} catch (IOException e) {
+						
+					}
+                } 
+			}
+		}
+		// TODO implement DROP
+		if (alterModif != null)
+			if (updateQuery(alterModif.toString()) < 0)
+				throw new ProcessException("Alter modify  for " + name + " failed\n" + alterModif);
+		if (alterAdd != null)
+			if (updateQuery(alterAdd.toString()) < 0)
+				throw new ProcessException("Alter add for " + name + " failed\n" + alterAdd);
+	}
+	
+	protected  Field getFieldByName(String name, Set<Field> fields) {
+		for(Field f: fields) {
+			if (name.equals(f.getName()))
+				return f;
+		}
+		return null;
+	}
+	
+	protected Appendable appendFieldDescription(Appendable a, Field f) throws IOException {
+		a.append(f.getStoredName()).append(' ').append(f.getType());
+		if (f.getSize() > 0) {
+			a.append('(').append(String.valueOf(f.getSize()));
+			int prec = f.getPrecision();
+			if (prec > 0)
+				a.append(',').append(String.valueOf(prec));
+			a.append(')');
+		}
+		return a;
+	}
+	
+	/** Retrieves current storage fields description
+	 * 
+	 * @param name
+	 * @return
+	 * @throws ProcessException
+	 */
+	public Set<Field> getStorageDescription(String name) throws ProcessException {
+		Connection con = null;
+		DatabaseMetaData  dmd = null;
+		ResultSet rs = null;
+		HashSet<Field> result = new HashSet<Field>();
+		try {
+			con = getConnection();
+			dmd = con.getMetaData();
+			rs = dmd.getColumns(null, null, name, null);
+			while(rs.next()) {
+				result.add(SimpleField.create(rs.getString("COLUMN_NAME"), rs.getString("TYPE_NAME"), 
+						rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"), null, false, false, false, 0));
+			}
+		} catch(SQLException se) {
+			throw new ProcessException("An exception at column description retrievel", se);
+		} finally {
+			release(con, dmd, rs);
+		}
+		return result;
 	}
 
 	/** updates table records not matching pattern object by data object
@@ -585,6 +692,22 @@ public class DOService implements ServiceProvider {
 		}
 	}
 
+	private void release(Object... cs) {
+		if (cs != null)
+			for (Object resource : cs)
+				if (resource != null)
+					if (resource instanceof Connection)
+						release((Connection) resource, (Statement) null, (ResultSet) null);
+					else if (resource instanceof AutoCloseable)
+						try {
+							((AutoCloseable) resource).close();
+						} catch (Exception e) {
+
+						}
+					else
+						throw new IllegalArgumentException("Attempt to release non closeable resource: " + resource);
+	}
+	
 	private void release(Connection con, Statement stm, ResultSet rs) {
 		try {
 			if (rs != null)

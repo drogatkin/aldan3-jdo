@@ -14,6 +14,7 @@ public class SimpleField implements Field {
 	int size;
 	String label;
 	int resutlIndex; // future use in result for identifying a field
+	private int precision;
 	
 	public SimpleField(String l) {
 		this.label = l;
@@ -57,7 +58,7 @@ public class SimpleField implements Field {
 
 	@Override
 	public int getPrecision() {
-		return 0;
+		return precision;
 	}
 
 	@Override
@@ -103,5 +104,13 @@ public class SimpleField implements Field {
 	@Override
 	public int autoIncremented() {
 		return 0;
+	}
+	
+	public static SimpleField create(String name, String type, int size, int precision, String label, boolean key, boolean primary, boolean unique, int auto) {
+		SimpleField result = new SimpleField(name);
+		result.type = type;
+		result.size = size;
+		result.precision = precision;
+		return result;
 	}
 }
