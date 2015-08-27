@@ -201,12 +201,6 @@
        <parameter value="-C"/>
        <parameter value="&build_directory;" type="dir"/>
        <parameter value="&domain;" type="dir"/>
-       <parameter value="-C"/>
-       <parameter value="&source_directory;"/>
-       <parameter>&domain;/&project;/resource/dlogo.jpg</parameter>
-       <parameter value="-C"/>
-       <parameter value="&source_directory;"/>
-       <parameter>&domain;/&project;/resource/unexpectederror.htm</parameter>
       <onexception>
 	<block>
                  <echo>Exception at jarring</echo>
