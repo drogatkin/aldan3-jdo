@@ -297,11 +297,12 @@ public class DOService implements ServiceProvider {
 		StringBuilder alterModif = null;
 		StringBuilder alterDrop = null;
 		if (currentFields.size() == 0) { // no storage
+			//System.err.printf("No description found for %s%n", name);
 			createStorageFor(name, fields);
 			return;
 		}
 		for (Field f : fields) {
-			Field cf = getFieldByName(f.getName(), currentFields);
+			Field cf = getFieldByName(normalizeElementName(f.getName()), currentFields);
 			if (cf == null) {
 				if (alterAdd == null)
 					alterAdd = new StringBuilder("ALTER TABLE ").append(name).append(" ADD ");
@@ -314,7 +315,8 @@ public class DOService implements ServiceProvider {
 				}
 			} else {
 				if(cf.getSize() != f.getSize()) {
-					// TODO check type
+					if(!("varchar".equals(cf.getType()) && "varchar".equals(f.getType())))
+						continue;	
 					if (alterModif == null)
 						alterModif = new StringBuilder("ALTER TABLE ").append(name).append(" MODIFY ");
 					else
@@ -327,6 +329,7 @@ public class DOService implements ServiceProvider {
                 } 
 			}
 		}
+		//System.err.printf("Aler %s, modif %s, drop %s%n", alterAdd, alterModif, alterDrop);
 		// TODO implement DROP
 		if (alterModif != null)
 			if (updateQuery(alterModif.toString()) < 0)
@@ -345,6 +348,8 @@ public class DOService implements ServiceProvider {
 	}
 	
 	protected Appendable appendFieldDescription(Appendable a, Field f) throws IOException {
+		if (f.getType() == null)
+			throw new IllegalArgumentException("Can't resolve field type for "+f.getStoredName());
 		a.append(f.getStoredName()).append(' ').append(f.getType());
 		if (f.getSize() > 0) {
 			a.append('(').append(String.valueOf(f.getSize()));
@@ -370,15 +375,16 @@ public class DOService implements ServiceProvider {
 		try {
 			con = getConnection();
 			dmd = con.getMetaData();
-			rs = dmd.getColumns(null, null, name, null);
-			while(rs.next()) {
+			rs = dmd.getColumns(null, null, normalizeElementName(name), null);
+			//System.err.printf("resuested for table %s %s %s%n",  name, con.getCatalog(), con.getSchema());
+			while(rs.next()) {				
 				result.add(SimpleField.create(rs.getString("COLUMN_NAME"), rs.getString("TYPE_NAME"), 
-						rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"), null, false, false, false, 0));
+						rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"), null, false, false, false, "YES".equals(rs.getString("IS_AUTOINCREMENT"))?1:0));
 			}
 		} catch(SQLException se) {
-			throw new ProcessException("An exception at column description retrievel", se);
+			throw new ProcessException("An exception at column description retrieval", se);
 		} finally {
-			release(con, dmd, rs);
+			release(con, /*dmd,*/ rs);
 		}
 		return result;
 	}
@@ -478,7 +484,7 @@ public class DOService implements ServiceProvider {
 	static private String start_ius [] = {"insert into ", "TBD", "MERGE INTO "};
 	/** Insert records in table and retrieves auto generated keys back, it can also
 	 * setup on duplicate update, when uniqueness constraints violation happens
-	 * it is covered by merge into for some dataabses
+	 * it is covered by merge into for some databases
 	 * @param dataObject to insert
 	 * @param keys to retrieve back
 	 * @param updateObject used for update if duplicated condition
@@ -943,4 +949,14 @@ public class DOService implements ServiceProvider {
 		return "''yyyy-MM-dd HH:mm:ss''";
 	}
 	
+
+	/** Override this method is storage (table) name needs to be normalized, for example 
+	 * converted to upper case
+	 * @param name
+	 * @return
+	 */
+	protected String normalizeElementName(String name) {
+		return name;
+	}
+
 }

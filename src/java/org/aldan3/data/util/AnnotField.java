@@ -53,6 +53,8 @@ public class AnnotField implements Field {
 
 	@Override
 	public int getSize() {
+		if (dbField != null && !dbField.type().isEmpty())
+			return 0;
 		if (dbField != null && dbField.size() > 0)
 			return dbField.size();
 		if (ff != null && ff.presentSize() > 0)

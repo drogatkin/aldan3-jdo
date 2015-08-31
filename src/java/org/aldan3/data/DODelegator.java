@@ -48,7 +48,8 @@ public class DODelegator<T> implements DataObject, DOFactory {
 	 * @param model object
 	 * @param name name of storage table (optional)
 	 * @param exclusion comma separated list of fields excluded from DataObject
-	 * @param inclusion comma separated list of fields containing data for select operations
+	 * @param inclusion comma separated list of fields containing data for select operations, 
+	 * usually keys forming where clause 
 	 */
 	public DODelegator(T model, String name, String exclusion, String inclusion) {
 		principal = model;
