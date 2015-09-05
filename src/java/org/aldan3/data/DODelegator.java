@@ -6,6 +6,7 @@
  */
 package org.aldan3.data;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,6 +21,7 @@ import org.aldan3.annot.DataRelation;
 import org.aldan3.annot.FormField;
 import org.aldan3.data.util.AnnotField;
 import org.aldan3.data.util.FieldConverter;
+import org.aldan3.model.Coordinator;
 import org.aldan3.model.DOFactory;
 import org.aldan3.model.DataObject;
 import org.aldan3.model.Field;
@@ -43,13 +45,19 @@ public class DODelegator<T> implements DataObject, DOFactory {
 
 	protected Locale locale;
 
-	/** Creates DataObject from annotated model object
-	 * Some parameters give flexibility of customization
-	 * @param model object
-	 * @param name name of storage table (optional)
-	 * @param exclusion comma separated list of fields excluded from DataObject
-	 * @param inclusion comma separated list of fields containing data for select operations, 
-	 * usually keys forming where clause 
+	/**
+	 * Creates DataObject from annotated model object Some parameters give
+	 * flexibility of customization
+	 * 
+	 * @param model
+	 *            object
+	 * @param name
+	 *            name of storage table (optional)
+	 * @param exclusion
+	 *            comma separated list of fields excluded from DataObject
+	 * @param inclusion
+	 *            comma separated list of fields containing data for select
+	 *            operations, usually keys forming where clause
 	 */
 	public DODelegator(T model, String name, String exclusion, String inclusion) {
 		principal = model;
@@ -128,7 +136,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 			// another solution is implementing converter interface in model itself
 			// or reference a field of model holding instantiated converter instance
 			// and finally provide predefined thread friendly static method in specified class
-			return ((FieldConverter) ff.converter().newInstance()).deConvert(f.get(principal), timeZone, locale);
+			return create(ff.converter()).deConvert(f.get(principal), timeZone, locale);
 		} catch (Exception e) {
 			Log.l.error("Error in retrieving field:" + name, e);
 		}
@@ -192,7 +200,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 				} catch (IllegalArgumentException iae) {
 					DBField ff = f.getAnnotation(DBField.class);
 					if (ff != null && ff.converter() != FieldConverter.class) {
-						f.set(principal, ((FieldConverter) ff.converter().newInstance()).convert(value.toString(),
+						f.set(principal, create(ff.converter()).convert(value.toString(),
 								timeZone, locale));
 						return result;
 					}
@@ -269,8 +277,10 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		return null;
 	}
 
-	/** build all data field of data object with exclusion
-	 * <br> can be used for building reverse exclusion lists
+	/**
+	 * build all data field of data object with exclusion <br>
+	 * can be used for building reverse exclusion lists
+	 * 
 	 * @param modelClass
 	 * @param exclusion
 	 * @return
@@ -315,6 +325,23 @@ public class DODelegator<T> implements DataObject, DOFactory {
 	@Override
 	public DataObject create() {
 		return this;
+	}
+
+	private FieldConverter create(Class<? extends FieldConverter> class1) throws InstantiationException, IllegalAccessException {
+		if (principal instanceof Coordinator) {
+			try {
+				return class1.getConstructor(Object.class).newInstance(((Coordinator) principal).getModel(null));
+			} catch (IllegalArgumentException e) {
+
+			} catch (InvocationTargetException e) {
+
+			} catch (NoSuchMethodException e) {
+
+			} catch (SecurityException e) {
+
+			}
+		}
+		return class1.newInstance();
 	}
 
 }

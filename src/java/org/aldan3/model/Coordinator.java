@@ -8,7 +8,7 @@ package org.aldan3.model;
 
 import org.aldan3.data.DOService;
 
-public interface Coordinator {
+public interface Coordinator /*<M,S>*/ {
 	public static final String DOSERVICE = DOService.NAME;
 
 	Object getModel(String name);
