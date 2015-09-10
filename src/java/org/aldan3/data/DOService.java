@@ -329,19 +329,44 @@ public class DOService implements ServiceProvider {
                 } 
 			}
 		}
-		//System.err.printf("Aler %s, modif %s, drop %s%n", alterAdd, alterModif, alterDrop);
-		// TODO implement DROP
+		for (Field f : currentFields) {
+			if (getFieldByNameNormalized(f.getName(), fields) == null) {
+				if (alterDrop == null)
+					alterDrop = new StringBuilder("ALTER TABLE ").append(name).append(" DROP COLUMN ");
+				else
+					alterDrop.append(", "); // TODO consider adding DROP COLUMN for each elements since syntax inconsistent
+				alterDrop.append(normalizeElementName(f.getName()));
+			}
+		}
+		//System.err.printf("Alter %s, modif %s, drop %s%n", alterAdd, alterModif, alterDrop);
 		if (alterModif != null)
 			if (updateQuery(alterModif.toString()) < 0)
 				throw new ProcessException("Alter modify  for " + name + " failed\n" + alterModif);
 		if (alterAdd != null)
 			if (updateQuery(alterAdd.toString()) < 0)
 				throw new ProcessException("Alter add for " + name + " failed\n" + alterAdd);
+		if (alterDrop != null)
+			if (updateQuery(alterDrop.toString()) < 0)
+				throw new ProcessException("Alter drop for " + name + " failed\n" + alterDrop);
 	}
 	
 	protected  Field getFieldByName(String name, Set<Field> fields) {
-		for(Field f: fields) {
+		// TODO analyze if stored name has to e used
+		//System.err.printf("Looking for %s%n", name);
+		for(Field f: fields) { //f.getStoredName()
+			//System.err.printf("Comparing to %s%n", f.getName());
 			if (name.equals(f.getName()))
+				return f;
+		}
+		return null;
+	}
+	
+	protected  Field getFieldByNameNormalized(String name, Set<Field> fields) {
+		// TODO analyze if stored name has to e used
+		//System.err.printf("Looking for %s%n", name);
+		for(Field f: fields) { //f.getStoredName()
+			//System.err.printf("Comparing to %s%n", f.getName());
+			if (name.equals(normalizeElementName(f.getName())))
 				return f;
 		}
 		return null;
