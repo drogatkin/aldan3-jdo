@@ -301,12 +301,13 @@ public class DOService implements ServiceProvider {
 			createStorageFor(name, fields);
 			return;
 		}
+		// TODO ALTER seems DB vendor specific, some configurability is required
 		for (Field f : fields) {
 			Field cf = getFieldByName(normalizeElementName(f.getName()), currentFields);
 			if (cf == null) {
-				if (alterAdd == null)
-					alterAdd = new StringBuilder("ALTER TABLE ").append(name).append(" ADD ");
-				else
+				if (alterAdd == null) {
+					alterAdd = new StringBuilder("ALTER TABLE ").append(name).append(" ADD (");
+				} else
 					alterAdd.append(", ");
 				try {
 					appendFieldDescription(alterAdd, f);
@@ -329,6 +330,8 @@ public class DOService implements ServiceProvider {
                 } 
 			}
 		}
+		if (alterAdd != null)
+			alterAdd.append(")");
 		for (Field f : currentFields) {
 			if (getFieldByNameNormalized(f.getName(), fields) == null) {
 				if (alterDrop == null)
