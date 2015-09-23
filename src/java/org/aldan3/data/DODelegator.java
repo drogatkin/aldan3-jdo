@@ -315,6 +315,9 @@ public class DODelegator<T> implements DataObject, DOFactory {
 	}
 
 	protected String normilizeFieldName(String fieldName) {
+		if (principal instanceof Coordinator) {
+			return ((DOService)((Coordinator)principal).getService(Coordinator.DOSERVICE)).normalizeElementName(fieldName);
+		}
 		return fieldName;
 	}
 
