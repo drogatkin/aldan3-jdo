@@ -255,7 +255,7 @@ public class DOService implements ServiceProvider {
 				q.append(f.getSql());
 			else {
 				q.append(f.getStoredName()).append(' ').append(f.getType());
-				if (f.getSize() > 0) {
+				if (f.getSize() > 0 && f.autoIncremented() < 1) {
 					q.append('(').append(f.getSize());
 					int prec = f.getPrecision();
 					if (prec > 0)
@@ -528,7 +528,7 @@ public class DOService implements ServiceProvider {
 		boolean first = true;
 		LinkedList<Field> addedKeySet = null;
 		for (Field f : fields) {
-			if (dataObject.meanFieldFilter(f.getName()) == true)
+			if (dataObject.meanFieldFilter(f.getName()) == true /*&& var != 0*/)
 				continue;
 			if (first)
 				first = false;
@@ -584,7 +584,7 @@ public class DOService implements ServiceProvider {
 		ResultSet rs = null;
 		try {
 			con = getConnection();
-			//System.err.println("prepare statement:" + q);
+			System.err.println("prepare statement:" + q);
 			String[] ka = null;
 			stm = keys == null ? con.prepareStatement(q.toString()) : con.prepareStatement(q.toString(), ka = keys
 					.split(","));
@@ -615,7 +615,7 @@ public class DOService implements ServiceProvider {
 						//System.err.println("Set key "+k+" to "+dobj);
 					}
 				} else {
-					//System.err.printf("No autoincremented keys retieved:%s%n", keys);
+					//System.err.printf("No autoincremented keys retrieved:%s%n", keys);
 					for (String k : ka) 
 						dataObject.modifyField(k, null);
 					//throw new ProcessException("Can't retrieve autoincremented keys:" + keys);
