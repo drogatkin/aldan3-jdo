@@ -584,7 +584,7 @@ public class DOService implements ServiceProvider {
 		ResultSet rs = null;
 		try {
 			con = getConnection();
-			System.err.println("prepare statement:" + q);
+			//System.err.println("prepare statement:" + q);
 			String[] ka = null;
 			stm = keys == null ? con.prepareStatement(q.toString()) : con.prepareStatement(q.toString(), ka = keys
 					.split(","));
