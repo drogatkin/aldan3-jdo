@@ -262,10 +262,14 @@ public class DOService implements ServiceProvider {
 						q.append(',').append(prec);
 					q.append(')');
 				}
+				if (inlineQualificators()) {
+					if (f.isUnique())
+						q.append(" UNIQUE");
+				}
 			}
 		}
 		// TODO add constraints, check foreign, primary, key, unique
-		if (c.length() > 0)
+		if (c.length() > 0 && !inlineQualificators())
 			q.append(c);
 		q.append(")");
 		//System.err.printf("sql:%s%n", q);
@@ -509,7 +513,7 @@ public class DOService implements ServiceProvider {
 		return addObject(dataObject, keys, null);
 	}
 	
-	static private String start_ius [] = {"insert into ", "TBD", "MERGE INTO "};
+	static private String start_ius [] = {"insert into ", "MERGE INTO ", "MERGE INTO "};
 	/** Insert records in table and retrieves auto generated keys back, it can also
 	 * setup on duplicate update, when uniqueness constraints violation happens
 	 * it is covered by merge into for some databases
@@ -985,6 +989,10 @@ public class DOService implements ServiceProvider {
 	 */
 	protected String normalizeElementName(String name) {
 		return name;
+	}
+	
+	protected boolean inlineQualificators() {
+		return true;
 	}
 
 }
