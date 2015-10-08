@@ -242,13 +242,13 @@ public class DOService implements ServiceProvider {
 				q.append(", ");
 			if (f.isKey())
 				c.append(", primary key(").append(f.getStoredName()).append(')');
-			else if (f.isIndex()) {
+			else if (f.isIndex() && !inlineConstraints()) {
 				if (indexCols == null)
 					c.append(", index(").append(f.getStoredName()).append(')');
 				else
 					indexCols.add(f.getStoredName());
 			}
-			if (f.isUnique())
+			if (f.isUnique() && !inlineConstraints())
 				c.append(", UNIQUE(").append(f.getStoredName()).append(')');
 			
 			if (f.getSql() != null && f.getSql().length() > 0)
@@ -262,14 +262,14 @@ public class DOService implements ServiceProvider {
 						q.append(',').append(prec);
 					q.append(')');
 				}
-				if (inlineQualificators()) {
+				if (inlineConstraints()) {
 					if (f.isUnique())
 						q.append(" UNIQUE");
 				}
 			}
 		}
 		// TODO add constraints, check foreign, primary, key, unique
-		if (c.length() > 0 && !inlineQualificators())
+		if (c.length() > 0)
 			q.append(c);
 		q.append(")");
 		//System.err.printf("sql:%s%n", q);
@@ -991,7 +991,16 @@ public class DOService implements ServiceProvider {
 		return name;
 	}
 	
-	protected boolean inlineQualificators() {
+	/** Sorts of using certain constraints as inline or as 
+	 * a separate entry , for example<br>
+	 * <ul>
+	 *  <li>field type constraint
+	 *  <li>constraint(field)
+	 *  </ul>
+	 * @return
+	 */
+	protected boolean inlineConstraints() {
+		// TODO actually provide list of constraints
 		return true;
 	}
 
