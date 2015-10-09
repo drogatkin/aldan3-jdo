@@ -87,6 +87,12 @@ public class Sql {
 		return result.toString();
 	}
 
+	/** converts Java object to corresponding SQL
+	 * value with awareness of the object type
+	 * @param data
+	 * @param dateTimePattern
+	 * @return
+	 */
 	public static String toSqlString(Object data, String dateTimePattern) {
 		if (data == null)
 			return "NULL";
@@ -114,6 +120,12 @@ public class Sql {
 		return "'" + escapeQuote(data.toString()) + "'";
 	}
 
+	/** converts Java object to SQL value 
+	 * 
+	 * @param data
+	 * @param dateTimePattern
+	 * @return
+	 */
 	public static String toSqlValue(Object data, String dateTimePattern) {
 		if (data == null)
 			return "NULL";

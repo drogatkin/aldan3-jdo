@@ -90,18 +90,47 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		}
 	}
 
+	/** Creates data object from annotated POJO
+	 * it takes all DB fields and use no key, suitable for add operation mostly
+	 * @param model
+	 */
 	public DODelegator(T model) {
 		this(model, null, (String) null, null);
 	}
 
+	/** Creates data object from annotated POJO
+	 * 
+	 * @param model
+	 * @param name of table/data object
+	 * @param exclusion POJO annotated used for forming exclusion fields
+	 */
 	public DODelegator(T model, String name, Class exclusion) {
 		this(model, name, listOfFields(exclusion, null), null);
+		if (model.getClass() == exclusion)
+			throw new IllegalArgumentException("Model class and exclusion class are the same");
 	}
 
+	/** Creates data object from annotated POJO
+	 * 
+	 * @param model
+	 * @param name
+	 * @param exclusion
+	 * @param inclusion
+	 */
 	public DODelegator(T model, String name, Class exclusion, String inclusion) {
 		this(model, name, listOfFields(exclusion, null), inclusion);
+		if (model.getClass() == exclusion)
+			throw new IllegalArgumentException("Model class and exclusion class are the same");
 	}
 
+	/** Creates data object from annotated POJO
+	 * 
+	 * @param model
+	 * @param name
+	 * @param exclusion class with DB annotations foeming exclusion list
+	 * @param exclusioninclusion reduces exclusion list for specified values
+	 * @param inclusion key fields
+	 */
 	public DODelegator(T model, String name, Class exclusion, String exclusioninclusion, String inclusion) {
 		this(model, name, listOfFields(exclusion, exclusioninclusion), inclusion);
 	}
