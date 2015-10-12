@@ -987,7 +987,7 @@ public class DOService implements ServiceProvider {
 	 * @param name
 	 * @return
 	 */
-	protected String normalizeElementName(String name) {
+	public String normalizeElementName(String name) {
 		return name;
 	}
 	
