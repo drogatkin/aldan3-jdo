@@ -85,7 +85,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 				if (fieldsMap.containsKey(name))
 					selectedData.add(name);
 				else
-					Log.l.debug("The field %s claimed as key wasn't in fields list and ignored", null, name);
+					Log.l.debug("The field %s was claimed as key wasn't in fields list and ignored", name);
 			}
 		}
 	}
@@ -222,6 +222,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		name = normilizeFieldName(name);
 		try {
 			java.lang.reflect.Field f = fieldsMap.get(name);
+                        //name = normilizeFieldName(name);
 			if (f != null) {
 				Object result = f.get(principal);
 				try {
@@ -235,13 +236,13 @@ public class DODelegator<T> implements DataObject, DOFactory {
 					}
 					Class t = f.getType();
 					Class vc = value == null ? null : value.getClass();
-					Log.l.debug("Required data conversion for %s to %s of %s != %s%n", name, value, vc, t);
+					Log.l.debug("Required data conversion for %s to %s of %s != %s", name, value, vc, t);
 					//System.err.printf("required data conversion for %s to %s of %s != %s%n", name, value, vc, t);
 					if (vc == null) {
 						if (t.isPrimitive()) {
 							f.set(principal, 0);
 						} else
-							Log.l.debug("Can't set null value for %s", null, t);
+							Log.l.debug("Can't set null value for %s", t);
 					} else if (vc == String.class) {
 						String sv = (String) value;
 						if (sv.length() > 0) {
@@ -270,7 +271,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 								f.set(principal, TimeZone.getTimeZone(sv));
 							}
 						} else { // empty string
-							System.err.printf("Empty string can't be converted, so field %s wasn't set%n", name);
+							Log.l.debug("Empty string can't be converted, so field %s wasn't set", name);
 						}
 					} else if (vc == BigDecimal.class) {
 						if (t == float.class || t == Float.class)
@@ -282,11 +283,11 @@ public class DODelegator<T> implements DataObject, DOFactory {
 					} else if (vc == Double.class) {
 
 					} else
-						Log.l.debug("Field %s wasn't updated to %s%n", name, value);
+						Log.l.debug("Field %s wasn't updated to %s", name, value);
 				}
 				return result;
 			} else
-				System.err.printf("A field wasn't found for name %s to set to %s%n", name, value);
+				Log.l.error(String.format("A field wasn't found for name %s to set to %s", name, value), null);
 		} catch (Exception e) {
 			Log.l.error("Problem is settings " + name + " to " + value, e);
 			e.printStackTrace();
