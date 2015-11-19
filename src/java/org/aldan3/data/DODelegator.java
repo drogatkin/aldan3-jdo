@@ -237,7 +237,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 					Class t = f.getType();
 					Class vc = value == null ? null : value.getClass();
 					Log.l.debug("Required data conversion for %s to %s of %s != %s", name, value, vc, t);
-					//System.err.printf("required data conversion for %s to %s of %s != %s%n", name, value, vc, t);
+					//Log.l.error("trace", new Exception("t"));
 					if (vc == null) {
 						if (t.isPrimitive()) {
 							f.set(principal, 0);

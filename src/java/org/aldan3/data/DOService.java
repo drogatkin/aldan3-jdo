@@ -620,8 +620,8 @@ public class DOService implements ServiceProvider {
 					}
 				} else {
 					//System.err.printf("No autoincremented keys retrieved:%s%n", keys);
-					for (String k : ka) 
-						dataObject.modifyField(k, null);
+					//for (String k : ka) 
+						//dataObject.modifyField(k, null);
 					//throw new ProcessException("Can't retrieve autoincremented keys:" + keys);
 				}
 			}
