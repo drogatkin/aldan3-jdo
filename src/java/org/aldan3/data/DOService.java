@@ -719,7 +719,8 @@ public class DOService implements ServiceProvider {
 			} catch (SQLException e) {
 				e.printStackTrace();
 			} finally {
-				transactionContext.set(null);
+				//transactionContext.set(null);
+				transactionContext.remove();
 				try {
 					con.setAutoCommit(true);
 					con.close();
