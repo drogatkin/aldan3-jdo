@@ -227,6 +227,8 @@ public class DOService implements ServiceProvider {
 	 * @throws ProcessException
 	 */
 	// TODO figure out how to pass simply class, like createStorageFor(Class<?> object 
+	// TODO make sure adding some default size for varchar, since without size isn't allowed
+	// TODO double has to be defined with precision
 	public void createStorageFor(String name, Set<Field> fields) throws ProcessException {
 		if (name == null || name.length() == 0 || fields == null || fields.size() == 0)
 			throw new IllegalArgumentException("Null or empty parameters are specified");
