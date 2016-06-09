@@ -200,8 +200,14 @@ public @interface FormField {
 	
 	
 	/** defines placeholder label as resource key or label itself when no labels
-	 * specified
+	 * specified, and translated to <b>placeholder</b> HTML attribute
 	 * @return
 	 */
 	String presentLabel() default "";
+	
+	/** specifies title for a field, it is considered as resource name, and then value taken
+	 * 
+	 * @return
+	 */
+	String presentTitle() default "";
 }

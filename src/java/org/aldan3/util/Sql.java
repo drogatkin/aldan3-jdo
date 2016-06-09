@@ -189,7 +189,7 @@ public class Sql {
 				Clob clob = null;
 				try {
 					clob = rs.getClob(c);
-					if (clob != null)
+					if (clob != null) // TODO throw an exception if CLOB is too big
 						result.modifyField(f, clob.getSubString(1, (int)clob.length()));
 					else
 						result.modifyField(f, null);

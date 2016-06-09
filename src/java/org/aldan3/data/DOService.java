@@ -134,7 +134,7 @@ public class DOService implements ServiceProvider {
 				if (rs.next())
 					throw new ProcessException("Multiple objects matching the query " + query);
 				return result;
-			}
+			} //System.err.printf("No records for %s, %s%n",  query, con);
 			return null;
 		} catch (SQLException e) {
 			Log.l.log(Log.ERROR, "", "q: %s = ", e, query);
@@ -154,6 +154,15 @@ public class DOService implements ServiceProvider {
 		return getObjectsByQuery(query, from, size, null);
 	}
 
+	/** read data objects 
+	 * 
+	 * @param query
+	 * @param from
+	 * @param size
+	 * @param doFactory
+	 * @return
+	 * @throws ProcessException
+	 */
 	public <D extends DataObject> Collection<D> getObjectsByQuery(String query, long from, int size,
 			DOFactory<D> doFactory) throws ProcessException {
 		Connection con = null;
