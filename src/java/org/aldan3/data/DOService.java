@@ -419,7 +419,7 @@ public class DOService implements ServiceProvider {
 			con = getConnection();
 			dmd = con.getMetaData();
 			rs = dmd.getColumns(null, null, normalizeElementName(name), null);
-			//System.err.printf("resuested for table %s %s %s%n",  name, con.getCatalog(), con.getSchema());
+			//System.err.printf("requested for table %s %s %s%n",  name, con.getCatalog(), con.getSchema());
 			while(rs.next()) {				
 				result.add(SimpleField.create(rs.getString("COLUMN_NAME"), rs.getString("TYPE_NAME"), 
 						rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"), null, false, false, false, "YES".equals(rs.getString("IS_AUTOINCREMENT"))?1:0));
@@ -430,6 +430,37 @@ public class DOService implements ServiceProvider {
 			release(con, /*dmd,*/ rs);
 		}
 		return result;
+	}
+	
+	/** retrieves all available individual storages in provided scope
+	 * 
+	 * @param schema - specifies scope
+	 * @return a collection of storages definitions as name and type (TABLE_NAME and TABLE_TYPE for SQL storages), or null if nothing found
+	 * @throws ProcessException if a problem encountered durign the operation
+	 */
+	public Collection<DataObject> getAllStorages(String schema) throws ProcessException {
+		Connection con = null;
+		DatabaseMetaData  dmd = null;
+		ResultSet rs = null;
+		Collection<DataObject> result = null;
+		try {
+			con = getConnection();
+			dmd = con.getMetaData();
+			rs = dmd.getTables(null, normalizeElementName(schema), "%", null);
+			if (rs.next()) {
+				result = new ArrayList<DataObject>();
+				result.add(Sql.createDO(rs, null));
+				while(rs.next()) {
+					result.add(Sql.createDO(rs, null));
+				}
+			}
+		} catch(SQLException se) {
+			throw new ProcessException("An exception at column description retrieval", se);
+		} finally {
+			release(con, /*dmd,*/ rs);
+		}
+		return result;
+		
 	}
 
 	/** updates table records not matching pattern object by data object
