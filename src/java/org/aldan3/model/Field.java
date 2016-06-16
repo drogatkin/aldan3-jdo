@@ -54,6 +54,13 @@ public interface Field {
      */
     public String getType();
     
+    /** Type of field in storage
+     * 
+     * @return java.sqlType
+     */
+
+    public int getJDBCType();
+    
     /** Precision of size
      * 
      * @return

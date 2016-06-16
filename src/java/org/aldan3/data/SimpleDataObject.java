@@ -6,6 +6,7 @@
  */
 package org.aldan3.data;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,13 +16,13 @@ import org.aldan3.model.DataObject;
 import org.aldan3.model.Field;
 
 public class SimpleDataObject implements DataObject {
-	private HashMap<String, Object> data;
+	private HashMap<Field, Object> data;
 
-	private HashSet<Field> fields;
+	private HashMap<String, Field> fields;
 
 	public SimpleDataObject() {
-		data = new HashMap<String, Object>();
-		fields = new HashSet<Field>();
+		data = new HashMap<Field, Object>();
+		fields = new HashMap<String, Field>();
 	}
 
 	//	public void setName(String name) {
@@ -30,8 +31,8 @@ public class SimpleDataObject implements DataObject {
 
 	@Override
 	public Field defineField(Field field) {
-		if (fields.contains(field) == false)
-			fields.add(field);
+		if (fields.containsKey(field.getName()) == false)
+			fields.put(field.getName(), field);
 		return field;
 	}
 
@@ -42,50 +43,88 @@ public class SimpleDataObject implements DataObject {
 
 	@Override
 	public Object get(String name) {
-		return data.get(name);
+		return data.get(fields.get(name));
 	}
-
 
 	@Override
 	public Field getField(Field field) {
-		if (fields.contains(field) == false)
-			return null;
-		return field;
+		return fields.get(field.getName());
 	}
 
 	@Override
 	public Set<String> getFieldNames() {
-		HashSet<String> names = new HashSet<String>();
-		for (Field f : fields)
-			names.add(f.getName());
-		return names;
+		return fields.keySet();
 	}
 
 	@Override
 	public Set<Field> getFields() {
-		return fields;
+		return new HashSet<Field>(fields.values());
 	}
 
 	@Override
 	public Object modifyField(String name, Object value) {
-		return data.put(name, value);
+		Field f = fields.get(name);
+		//new IllegalArgumentException("No field "+name).printStackTrace();
+		if (f == null)
+			throw new IllegalArgumentException("No field "+name+ " in : "+fields);
+		return modifyField(f, value);
 	}
 
 	@Override
 	public Object modifyField(Field field, Object value) {
-		return data.put(field.getName(), value);
+		if (value != null)
+			switch (field.getJDBCType()) {
+			case java.sql.Types.INTEGER:
+			case java.sql.Types.NUMERIC:
+				if (value instanceof Integer == false && value instanceof Long == false) {
+					String sv = value.toString().trim();
+					if (sv.length() == 0)
+						value = new Integer(0);
+					else
+						value = Long.valueOf(sv);
+				}
+				break;
+			case java.sql.Types.BIGINT:
+				if (value instanceof Integer == false && value instanceof BigInteger == false
+						&& value instanceof Long == false) {
+					String sv = value.toString().trim();
+					if (sv.length() == 0)
+						value = BigInteger.valueOf(0);
+					else
+						value = new BigInteger(value.toString());
+				}
+				break;
+			case java.sql.Types.REAL:
+			case java.sql.Types.DECIMAL:
+			case java.sql.Types.DOUBLE:
+			case java.sql.Types.FLOAT:
+				if (value instanceof Integer == false && value instanceof Float == false && value instanceof Long == false
+						&& value instanceof Double == false) {
+					String sv = value.toString().trim();
+					if (sv.length() == 0)
+						value = new Float(0);
+					else
+						value = Double.valueOf(sv);
+				}
+				break;
+			}
+		return data.put(field, value);
 	}
 
 	@Override
 	public Field removeField(Field field) {
-		if (fields.remove(field))
-			return field;
-		return null;
+		return removeData(fields.remove(field));
+	}
+
+	protected Field removeData(Field f) {
+		if (f != null)
+			data.remove(f);
+		return f;
 	}
 
 	public void fillAll(Filler filler) {
 		if (fields != null) {
-			for (Field f : fields) {
+			for (Field f : fields.values()) {
 				filler.fill(f);
 			}
 		}
@@ -93,12 +132,10 @@ public class SimpleDataObject implements DataObject {
 
 	@Override
 	public boolean containData(String name) {
-		if (data.containsKey(name))
+		Field f = fields.get(name);
+		if (data.containsKey(f))
 			return true;
-		for (Field f : fields)
-			if (f.getSql() != null && f.getSql().length() > 0)
-				return true;
-		return false;
+		return f != null && f.getSql() != null && f.getSql().length() > 0;
 	}
 
 	@Override
@@ -113,7 +150,7 @@ public class SimpleDataObject implements DataObject {
 		if (fields == null)
 			return "null";
 		String s = "";
-		for (Field f : fields) {
+		for (Field f : fields.values()) {
 			s += f.getName();
 			s += ":";
 			if (data.containsKey(f.getName()))

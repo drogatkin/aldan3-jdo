@@ -15,6 +15,7 @@ public class SimpleField implements Field {
 	String label;
 	int resutlIndex; // future use in result for identifying a field
 	private int precision;
+	int intType;
 	
 	public SimpleField(String l) {
 		this.label = l;
@@ -48,7 +49,7 @@ public class SimpleField implements Field {
 
 	@Override
 	public String toString() {
-		return "Field: "+getName()+"("+getStoredName()+") of "+getType() + "("+getSize()+") "+ getSql();
+		return "Field: "+getName()+"("+getStoredName()+") of "+getType() + "("+getSize()+") / "+getJDBCType() + " " + getSql();
 	}
 
 	@Override
@@ -106,11 +107,18 @@ public class SimpleField implements Field {
 		return 0;
 	}
 	
-	public static SimpleField create(String name, String type, int size, int precision, String label, boolean key, boolean primary, boolean unique, int auto) {
+	// TODO define a builder
+	public static SimpleField create(String name, String type, int size, int precision, String label, boolean key, boolean primary, boolean unique, int auto, int jdbcType) {
 		SimpleField result = new SimpleField(name);
 		result.type = type;
 		result.size = size;
 		result.precision = precision;
+		result.intType = jdbcType ;
 		return result;
+	}
+
+	@Override
+	public int getJDBCType() {
+		return intType;
 	}
 }

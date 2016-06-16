@@ -71,12 +71,12 @@ public @interface FormField {
 	 * @return
 	 */
 	String defaultTo() default "";
-
+	
 	/** Name of storage field corresponding to the form field
 	 * 
 	 * @return
 	 */
-	String dbFieldName() default "";
+	String dbFieldName() default ""; // TODO mke it storage name
 
 	/** Form field name if different than a field name
 	 * 

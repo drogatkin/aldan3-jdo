@@ -422,7 +422,7 @@ public class DOService implements ServiceProvider {
 			//System.err.printf("requested for table %s %s %s%n",  name, con.getCatalog(), con.getSchema());
 			while(rs.next()) {				
 				result.add(SimpleField.create(rs.getString("COLUMN_NAME"), rs.getString("TYPE_NAME"), 
-						rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"), null, false, false, false, "YES".equals(rs.getString("IS_AUTOINCREMENT"))?1:0));
+						rs.getInt("COLUMN_SIZE"), rs.getInt("DECIMAL_DIGITS"), null, false, false, false, "YES".equals(rs.getString("IS_AUTOINCREMENT"))?1:0, rs.getInt("DATA_TYPE")));
 			}
 		} catch(SQLException se) {
 			throw new ProcessException("An exception at column description retrieval", se);

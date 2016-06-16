@@ -174,4 +174,25 @@ public class AnnotField implements Field {
 		return false;
 	}
 
+	@Override
+	public int getJDBCType() {
+		//String type = dbField != null ? dbField.type() : "";
+		//if (type.length() > 0)
+			//return 0; // TODO use conversion
+		if (objectType == String.class) {
+			if (getSize() < 256)
+				return java.sql.Types.NVARCHAR;
+			else
+				return java.sql.Types.NCLOB;
+		} else if (objectType == Integer.class || objectType == Long.class) {
+			return java.sql.Types.INTEGER;
+		} else if (objectType == Float.class || objectType == Double.class) {
+			return java.sql.Types.DOUBLE;
+		} else if (objectType == Date.class) {
+			return java.sql.Types.TIMESTAMP;
+		} else if (objectType == File.class)
+			return java.sql.Types.BLOB;
+		return 0;
+	}
+
 }
