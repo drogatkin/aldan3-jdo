@@ -32,6 +32,7 @@ import org.aldan3.model.Field;
 import org.aldan3.util.Sql;
 
 public class DOService implements ServiceProvider {
+	// TODO add batch operations
 	public static final String NAME = "DOService";
 
 	DataSource dataSource;
@@ -68,6 +69,7 @@ public class DOService implements ServiceProvider {
 						});
 				if (rs.next())
 					throw new ProcessException("Query: " + q + " returned multiple objects like " + dataObject);
+				//Log.l.log(Log.ERROR, "", "q: %s = ", null, q);
 				return result;
 			}
 			return null;
@@ -546,6 +548,8 @@ public class DOService implements ServiceProvider {
 				v.append(Sql.toSqlString(dataObject.get(f.getName()), getInlineDatePattern()));
 			q.append(f.getStoredName());
 		}
+		if (first)
+			throw new ProcessException("No data were found to add");
 		q.append(") select ").append(v).append(getSelectValuesTable());
 		//System.err.println("Added:"+q);
 		return updateQuery(q.toString());
@@ -574,7 +578,8 @@ public class DOService implements ServiceProvider {
 		boolean first = true;
 		LinkedList<Field> addedKeySet = null;
 		for (Field f : fields) {
-			if (dataObject.meanFieldFilter(f.getName()) == true /*&& var != 0*/)
+			// excluding keys, if auto incremented
+			if (dataObject.meanFieldFilter(f.getName()) == true /*&& var != 0*/ && f.autoIncremented()!=0)
 				continue;
 			if (first)
 				first = false;
@@ -588,6 +593,8 @@ public class DOService implements ServiceProvider {
 				v.append('?');
 			q.append(f.getStoredName());
 		}
+		if (first)
+			throw new ProcessException("The inserted object "+fields+" doesn't contain any data");
 		switch(var) {
 		case 0: // MySQL 
 			q.append(") values (").append(v).append(')');
@@ -632,14 +639,21 @@ public class DOService implements ServiceProvider {
 			con = getConnection();
 			//System.err.println("prepare statement:" + q);
 			String[] ka = null;
-			stm = keys == null ? con.prepareStatement(q.toString()) : con.prepareStatement(q.toString(), ka = keys
+			stm = keys == null || keys.isEmpty() ? con.prepareStatement(q.toString()) : con.prepareStatement(q.toString(), ka = keys
 					.split(","));
 			int c = 1;
 			for (Field f : fields) {
+				//System.err.printf("check %d%n",c);
+				// excluding what are keys 
 				if (f.getSql() != null && f.getSql().length() > 0 ||
-						dataObject.meanFieldFilter(f.getName()) == true)
+						dataObject.meanFieldFilter(f.getName()) == true && f.autoIncremented()!=0)
 					continue;
-				stm.setObject(c++, Sql.toPreparedSqlValue(dataObject.get(f.getName())));
+				Object obj = dataObject.get(f.getName());
+				if (obj == null)
+					stm.setNull(c++, f.getJDBCType());
+				else
+					stm.setObject(c++, Sql.toPreparedSqlValue(obj));
+				//System.err.printf("set paramd %d%n", c);
 			}
 			switch(var) {
 			case 2:

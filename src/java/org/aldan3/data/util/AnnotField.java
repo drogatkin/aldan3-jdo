@@ -195,4 +195,9 @@ public class AnnotField implements Field {
 		return 0;
 	}
 
+	@Override
+	public String toString() {
+		return "Field [name=" + name + ", type=" + getType() + "]";
+	}
+
 }
