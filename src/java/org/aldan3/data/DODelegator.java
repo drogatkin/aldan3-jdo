@@ -68,7 +68,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 				FormField ff = f.getAnnotation(FormField.class);
 				String dbFiledName = ff != null && ff.dbFieldName().length() > 0 ? ff.dbFieldName() : f.getName();
 				if (fieldsMap.containsKey(dbFiledName))
-					throw new IllegalArgumentException("Ambiguous db fields " + f + " and "
+					throw new IllegalArgumentException("Ambiguous DB fields " + f + " and "
 							+ fieldsMap.get(dbFiledName));
 				fieldsMap.put(normilizeFieldName(dbFiledName), f);
 			}
