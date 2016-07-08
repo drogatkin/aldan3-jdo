@@ -113,8 +113,8 @@ public class DODelegator<T> implements DataObject, DOFactory {
 	/** Creates data object from annotated POJO
 	 * 
 	 * @param model
-	 * @param name
-	 * @param exclusion
+	 * @param name override name of data storage
+	 * @param exclusion a class specifying keys excluded
 	 * @param inclusion
 	 */
 	public DODelegator(T model, String name, Class exclusion, String inclusion) {
@@ -127,7 +127,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 	 * 
 	 * @param model
 	 * @param name
-	 * @param exclusion class with DB annotations foeming exclusion list
+	 * @param exclusion class with DB annotations forming an exclusion list
 	 * @param exclusioninclusion reduces exclusion list for specified values
 	 * @param inclusion key fields
 	 */

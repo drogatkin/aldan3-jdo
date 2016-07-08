@@ -179,13 +179,15 @@ public @interface FormField {
 	
 	/** does normalization value, several normalization codes can be used
 	 * <p>
-	 * 'U' - to upper case<br>
-	 * 'l' - to lover case<br>
-	 * 'T', 't' - trim white spaces<br>
-	 * 'C' -  to capital case, for example james smith -> James Smith
-	 * 'Z' - no null, means if field didn't come from form, no null fill be placed in target field, that
+	 * <ol>
+	 * <li>'U' - to upper case<br>
+	 * <li>'l' - to lover case<br>
+	 * <li>'T', 't' - trim white spaces<br>
+	 * <li>'C' -  to capital case, for example james smith -> James Smith
+	 * <li>'Z' - no null, means if field didn't come from form, no null fill be placed in target field, that
 	 * make preserve default value there.
-	 * 
+	 * <li>'E' - ellipsis to DB field size if any (no field length validation error) or to length defined after E
+	 * </ol>
 	 * @return string concatenation of normalization codes, for example "Ut" - to upper case and trim
 	 * <p> normalization happens as at reading form value as at writing it. Normalization
 	 * codes are case insensitive.
