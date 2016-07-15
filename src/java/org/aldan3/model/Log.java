@@ -28,29 +28,29 @@
  */
 package org.aldan3.model;
 
-public abstract class Log implements ServiceProvider  {
+public abstract class Log implements ServiceProvider<Log> {
 	public static final String DEBUG = "debug";
 
 	public static final String WARNING = "warning";
 
 	public static final String ERROR = "error";
-	
+
 	public static final String INFO = "info";
-	
+
 	public static final String NAME = "log";
-	
+
 	public static Log l;
-	
+
 	public abstract void log(String severity, String where, String message, Throwable t, Object... details);
-	
-	public void debug(String message,  Object... details) {
+
+	public void debug(String message, Object... details) {
 		log(DEBUG, getCaller(new Throwable(), false), message, null, details);
 	}
-	
+
 	public void error(String message, Throwable t) {
-		log(ERROR, t==null?getCaller(new Throwable(), false):getCaller(t, true), message, t);
+		log(ERROR, t == null ? getCaller(new Throwable(), false) : getCaller(t, true), message, t);
 	}
-	
+
 	public void info(String message) {
 		log(INFO, "", message, null);
 	}
@@ -87,9 +87,7 @@ public abstract class Log implements ServiceProvider  {
 	}
 
 	@Override
-	public Object getServiceProvider() {
+	public Log getServiceProvider() {
 		return this;
 	}
-	
-	
 }
