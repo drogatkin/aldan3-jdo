@@ -17,15 +17,15 @@ public interface DataObject {
 	@Deprecated
 	public Object getField(String name);
 	
-	/** returns field value as an object
+	/** returns a field value as an object
 	 * method <strong>getField</strong> for the same purpose is depreciated
 	 * 
 	 * @param name
 	 * @return
 	 */
-	public Object get(String name);
+	public Object get(String name); // TODO reconsider public <T> T get(String name);
 
-	/** Sets a new object field value, no reflection in persistent storage 
+	/** Sets a new object field value, no reflection in a persistent storage 
 	 *  
 	 * @param name
 	 * @param value

@@ -464,6 +464,24 @@ public class DOService implements ServiceProvider {
 		return result;
 		
 	}
+	
+	/** updates records specified by keys part to values of rest filled fields
+	 * 
+	 * @param dataObjectWithKeys
+	 * @return
+	 * @throws ProcessException
+	 */
+	public int updateObjectsLike(DataObject dataObjectWithKeys) throws ProcessException {
+		return updateObjectsLike(dataObjectWithKeys, false);
+	}
+	
+	public int updateObjectsNotLike(DataObject dataObjectWithKeys) throws ProcessException {
+		return updateObjectsLike(dataObjectWithKeys, true);
+	}
+	
+	public int updateObjectsLike(DataObject dataObjectWithKeys, boolean invert) throws ProcessException {
+		return 0;
+	}
 
 	/** updates table records not matching pattern object by data object
 	 * 
@@ -502,7 +520,7 @@ public class DOService implements ServiceProvider {
 		q.setLength(0);
 		q.append("update ").append(dataObject.getName()).append(" set ");
 		fillKeyValuePairs(dataObject, q);
-		//System.err.printf("Update:%s >< %s%n", q, wc);
+		System.err.printf("Update:%s >< %s%n", q, wc);
 		q.append(wc);
 		return updateQuery(q.toString());
 	}
