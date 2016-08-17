@@ -31,7 +31,7 @@ import org.aldan3.model.ServiceProvider;
 import org.aldan3.model.Field;
 import org.aldan3.util.Sql;
 
-public class DOService implements ServiceProvider {
+public class DOService implements ServiceProvider<DOService> {
 	// TODO add batch operations
 	public static final String NAME = "DOService";
 
@@ -520,7 +520,7 @@ public class DOService implements ServiceProvider {
 		q.setLength(0);
 		q.append("update ").append(dataObject.getName()).append(" set ");
 		fillKeyValuePairs(dataObject, q);
-		System.err.printf("Update:%s >< %s%n", q, wc);
+		//System.err.printf("Update:%s >< %s%n", q, wc);
 		q.append(wc);
 		return updateQuery(q.toString());
 	}
@@ -997,7 +997,7 @@ public class DOService implements ServiceProvider {
 	}
 
 	@Override
-	public Object getServiceProvider() {
+	public DOService getServiceProvider() {
 		return this;
 	}
 
