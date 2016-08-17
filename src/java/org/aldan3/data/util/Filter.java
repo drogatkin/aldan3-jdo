@@ -6,12 +6,16 @@
  */
 package org.aldan3.data.util;
 
-import org.aldan3.model.Coordinator;
-
-public interface Filter <T>{
-	
+public interface Filter <T,I>{
+	/** returns name of filter expression
+	 * 
+	 * @return
+	 */
 	String getName();
 	
-	T getValue(Coordinator coord);
+	/** returns substituted filter value
+	 * 
+	 */
+	T getValue(I coord);
 
 }
