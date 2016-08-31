@@ -54,6 +54,10 @@ public @interface DBField {
 	@SuppressWarnings("unchecked")
 	Class<? extends FieldConverter> converter() default FieldConverter.class;
 
+	/** SQL snippet used for the field in a where clause
+	 * 
+	 * @return
+	 */
 	String sql() default "";
 
 	/** specifies tables and corresponding primary keys of the foreign key
