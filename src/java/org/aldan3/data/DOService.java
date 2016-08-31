@@ -573,6 +573,13 @@ public class DOService implements ServiceProvider<DOService> {
 		return updateQuery(q.toString());
 	}
 
+	/** adds an object and return generated auto keys
+	 * 
+	 * @param dataObject
+	 * @param keys
+	 * @return
+	 * @throws ProcessException
+	 */
 	public int addObject(DataObject dataObject, String keys) throws ProcessException {
 		return addObject(dataObject, keys, null);
 	}
