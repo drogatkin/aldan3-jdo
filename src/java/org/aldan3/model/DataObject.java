@@ -9,10 +9,11 @@ package org.aldan3.model;
 import java.util.Set;
 
 public interface DataObject {
-	/** returns field value as an object
+	/** returns a field value as an object
 	 * 
 	 * @param name
-	 * @return
+	 * @return value
+	 * @deprecated and method get has to be used
 	 */
 	@Deprecated
 	public Object getField(String name);
@@ -25,6 +26,14 @@ public interface DataObject {
 	 */
 	public Object get(String name); // TODO reconsider public <T> T get(String name);
 
+	/** Sets a new object field value, no reflection in a persistent storage 
+	 *  
+	 * @param name
+	 * @param value
+	 * @return
+	 */
+	//public Object put(String name, Object value);
+	
 	/** Sets a new object field value, no reflection in a persistent storage 
 	 *  
 	 * @param name
@@ -92,9 +101,13 @@ public interface DataObject {
 	 */
 	public boolean meanFieldFilter(String name);
 	
-	// TODO use this method
-	//public boolean isKey(String name);
-	
+	/** specifies if the field is a part of operation, like key, where condition
+	 * 
+	 * @param name
+	 * @return
+	 */
+	//public boolean isOperational(String name);
+		
 	/** tells if the parameter field name is a key 
 	 * 
 	 * @param name

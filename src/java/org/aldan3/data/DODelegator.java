@@ -85,7 +85,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 				if (fieldsMap.containsKey(name))
 					selectedData.add(name);
 				else
-					Log.l.debug("The field %s was claimed as key wasn't in fields list and ignored", name);
+					Log.l.debug("The field %s was claimed as key wasn't in a fields list and ignored", name);
 			}
 		}
 	}

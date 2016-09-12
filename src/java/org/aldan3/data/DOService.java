@@ -525,7 +525,7 @@ public class DOService implements ServiceProvider<DOService> {
 		return updateQuery(q.toString());
 	}
 
-	/** adds object unless it does exist
+	/** adds object unless it does exist. Keys (mean) are not included.
 	 * 
 	 * @param dataObject
 	 * @param existObject
@@ -533,13 +533,77 @@ public class DOService implements ServiceProvider<DOService> {
 	 * @return
 	 * @throws ProcessException
 	 */
-	/*public int addObject(DataObject dataObject, DataObject existObject, String keys) throws ProcessException {
-		StringBuffer q = new StringBuffer(512);
-		StringBuffer v = new StringBuffer(512);
-		
-	}*/
+	public int addObject(DataObject dataObject, DataObject existObject, String keys) throws ProcessException {
+		// TODO add retrieving keys
+		/*
+		 * 
+		 * INSERT INTO table_listnames (name, address, tele)
+		SELECT * FROM (SELECT 'Rupert', 'Somewhere', '022') AS tmp
+		WHERE NOT EXISTS (
+		SELECT name FROM table_listnames WHERE name = 'Rupert'
+		) LIMIT 1;
+		 */
+		StringBuffer i = new StringBuffer(512);
+		StringBuffer d = new StringBuffer(512);
+		StringBuffer s = new StringBuffer(512);
+		StringBuffer w = new StringBuffer(512);
+		Set<Field> fields = dataObject.getFields();
+		i.append("INSERT INTO ").append(dataObject.getName()).append(" (");
+		d.append(") SELECT * FROM (SELECT ");
+		s.append(") AS tmp WHERE NOT EXISTS (SELECT ");
+		w.append(" FROM ").append(dataObject.getName()).append(" WHERE ");
+		boolean first = true;
+		for (Field f : fields) {
+			if (/*dataObject.meanFieldFilter(f.getName()) ||*/ f.autoIncremented()!=0) // excluding keys (mean)
+				continue;
+			if (first)
+				first = false;
+			else {
+				i.append(", ");
+				d.append(", ");
+			}
+			if (f.getSql() != null && f.getSql().length() > 0)
+				d.append(f.getSql());
+			else
+				d.append(Sql.toSqlString(dataObject.get(f.getName()), getInlineDatePattern())).append(" AS ")
+						.append(f.getStoredName());
+			i.append(f.getStoredName());
+		}
+		if (first)
+			throw new ProcessException("No fields to add");
+		fields = existObject.getFields();
+		first = true;
+		for (Field f : fields) {
+			if (dataObject.meanFieldFilter(f.getName()) == false) // processing keys
+				continue;
+			if (first)
+				first = false;
+			else {
+				s.append(", ");
+				w.append(" AND ");
+			}
+			if (f.getSql() != null && f.getSql().length() > 0)
+				w.append(f.getSql());
+			else
+				w.append(f.getStoredName()).append('=')
+						.append(Sql.toSqlString(dataObject.get(f.getName()), getInlineDatePattern()));
+			s.append(f.getStoredName());
+		}
+		if (first)
+			throw new ProcessException("No exists fields");
+		i.append(d).append(s).append(w).append(") "); 
+		String limit = getLimit(0, 1);
+		if (limit != null)
+			i.append(limit);
+		System.err.println("add if not exists:" + i);
+		if (keys == null || keys.isEmpty())
+			return updateQuery(i.toString());
+		else
+			throw new ProcessException("Retrieving keys isn't implemented");
+	}
 	
-	/** adds object unconditionally and no auto generated keys requested
+	/** adds object unconditionally and no auto generated keys requested. 
+	 * All fields have to be marked as keys (mean)
 	 *  
 	 * @param dataObject
 	 * @return
@@ -567,7 +631,7 @@ public class DOService implements ServiceProvider<DOService> {
 			q.append(f.getStoredName());
 		}
 		if (first)
-			throw new ProcessException("No data were found to add");
+			throw new ProcessException("No operational fields to add");
 		q.append(") select ").append(v).append(getSelectValuesTable());
 		//System.err.println("Added:"+q);
 		return updateQuery(q.toString());

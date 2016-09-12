@@ -107,7 +107,7 @@
        <parameter value="-classpath"/>
        <parameter variable="class path"/>
        <parameter value="-source"/>
-       <parameter value="1.5"/>
+       <parameter value="1.6"/>
        <parameter value="-target"/>
        <parameter variable="comp target"/>
        <parameter value="-d"/>
