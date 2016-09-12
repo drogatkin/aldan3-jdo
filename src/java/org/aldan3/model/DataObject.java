@@ -27,12 +27,23 @@ public interface DataObject {
 	public Object get(String name); // TODO reconsider public <T> T get(String name);
 
 	/** Sets a new object field value, no reflection in a persistent storage 
-	 *  
+	 * <p> This method replace   
 	 * @param name
 	 * @param value
 	 * @return
 	 */
-	//public Object put(String name, Object value);
+	public Object put(String name, Object value);
+	
+	/** Puts new data value for a field
+	 * 
+	 * @param field
+	 * @param value
+	 * @return
+	 *
+	 */
+	public Object put(Field field, Object value);
+	
+	public String getSql(Field field); 
 	
 	/** Sets a new object field value, no reflection in a persistent storage 
 	 *  
@@ -40,6 +51,7 @@ public interface DataObject {
 	 * @param value
 	 * @return
 	 */
+	@Deprecated
 	public Object modifyField(String name, Object value);
 
 	/** Sets a new object value for a field using Field object for field addressing, no
@@ -47,7 +59,9 @@ public interface DataObject {
 	 * @param field
 	 * @param value
 	 * @return
+	 * @deprecated use put
 	 */
+	@Deprecated
 	public Object modifyField(Field field, Object value);
 
 	/** Returns names of all fields as set of strings
@@ -98,15 +112,17 @@ public interface DataObject {
 	 * @param field name
 	 * @return true if the field value has to be included in an operation otherwise false
 	 * This method replaces  containData which is depreciated
+	 * @deprecated use <strong>isOperational</strong>
 	 */
+	@Deprecated
 	public boolean meanFieldFilter(String name);
 	
-	/** specifies if the field is a part of operation, like key, where condition
+	/** specifies if the field is a part of an operation, like key, where condition, and etc.
 	 * 
 	 * @param name
 	 * @return
 	 */
-	//public boolean isOperational(String name);
+	public boolean isOperational(String name);
 		
 	/** tells if the parameter field name is a key 
 	 * 

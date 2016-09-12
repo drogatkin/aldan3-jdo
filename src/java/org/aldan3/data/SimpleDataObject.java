@@ -63,15 +63,16 @@ public class SimpleDataObject implements DataObject {
 
 	@Override
 	public Object modifyField(String name, Object value) {
-		Field f = fields.get(name);
-		//new IllegalArgumentException("No field "+name).printStackTrace();
-		if (f == null)
-			throw new IllegalArgumentException("No field "+name+ " in : "+fields);
-		return modifyField(f, value);
+		return put(name, value);		
 	}
 
 	@Override
 	public Object modifyField(Field field, Object value) {
+		return put(field, value);
+	}
+	
+		@Override
+		public Object put(Field field, Object value) {
 		if (value != null)
 			switch (field.getJDBCType()) {
 			case java.sql.Types.INTEGER:
@@ -132,10 +133,7 @@ public class SimpleDataObject implements DataObject {
 
 	@Override
 	public boolean containData(String name) {
-		Field f = fields.get(name);
-		if (data.containsKey(f))
-			return true;
-		return f != null && f.getSql() != null && f.getSql().length() > 0;
+		return isOperational(name);
 	}
 
 	@Override
@@ -164,6 +162,28 @@ public class SimpleDataObject implements DataObject {
 
 	@Override
 	public boolean meanFieldFilter(String name) {
-		return containData(name);
+		return isOperational(name);
+	}
+
+	@Override
+	public Object put(String name, Object value) {
+		Field f = fields.get(name);
+		//new IllegalArgumentException("No field "+name).printStackTrace();
+		if (f == null)
+			throw new IllegalArgumentException("No field "+name+ " in : "+fields);
+		return put(f, value);
+	}
+
+	@Override
+	public String getSql(Field field) {
+		return field.getSql();
+	}
+
+	@Override
+	public boolean isOperational(String name) {
+		Field f = fields.get(name);
+		if (data.containsKey(f))
+			return true;
+		return f != null && f.getSql() != null && f.getSql().length() > 0;
 	}
 }

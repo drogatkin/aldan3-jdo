@@ -582,8 +582,9 @@ public class DOService implements ServiceProvider<DOService> {
 				s.append(", ");
 				w.append(" AND ");
 			}
-			if (f.getSql() != null && f.getSql().length() > 0)
-				w.append(f.getSql());
+			String sql = existObject.getSql(f);
+			if (sql != null && sql.length() > 0)
+				w.append(sql);
 			else
 				w.append(f.getStoredName()).append('=')
 						.append(Sql.toSqlString(dataObject.get(f.getName()), getInlineDatePattern()));
@@ -616,7 +617,7 @@ public class DOService implements ServiceProvider<DOService> {
 		q.append("insert into ").append(dataObject.getName()).append(" (");
 		boolean first = true;
 		for (Field f : fields) {
-			if (dataObject.meanFieldFilter(f.getName()) == false)
+			if ( f.autoIncremented()!=0 /*dataObject.meanFieldFilter(f.getName()) == false*/)
 				continue;
 			if (first)
 				first = false;

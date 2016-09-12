@@ -68,8 +68,8 @@ public class DODelegator<T> implements DataObject, DOFactory {
 				FormField ff = f.getAnnotation(FormField.class);
 				String dbFiledName = ff != null && ff.dbFieldName().length() > 0 ? ff.dbFieldName() : f.getName();
 				if (fieldsMap.containsKey(dbFiledName))
-					throw new IllegalArgumentException("Ambiguous DB fields " + f + " and "
-							+ fieldsMap.get(dbFiledName));
+					throw new IllegalArgumentException(
+							"Ambiguous DB fields " + f + " and " + fieldsMap.get(dbFiledName));
 				fieldsMap.put(normilizeFieldName(dbFiledName), f);
 			}
 		if (exclusion != null) {
@@ -90,19 +90,24 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		}
 	}
 
-	/** Creates data object from annotated POJO
-	 * it takes all DB fields and use no key, suitable for add operation mostly
+	/**
+	 * Creates data object from annotated POJO it takes all DB fields and use no
+	 * key, suitable for add operation mostly
+	 * 
 	 * @param model
 	 */
 	public DODelegator(T model) {
 		this(model, null, (String) null, null);
 	}
 
-	/** Creates data object from annotated POJO
+	/**
+	 * Creates data object from annotated POJO
 	 * 
 	 * @param model
-	 * @param name of table/data object
-	 * @param exclusion POJO annotated used for forming exclusion fields
+	 * @param name
+	 *            of table/data object
+	 * @param exclusion
+	 *            POJO annotated used for forming exclusion fields
 	 */
 	public DODelegator(T model, String name, Class exclusion) {
 		this(model, name, listOfFields(exclusion, null), null);
@@ -110,11 +115,14 @@ public class DODelegator<T> implements DataObject, DOFactory {
 			throw new IllegalArgumentException("Model class and exclusion class are the same");
 	}
 
-	/** Creates data object from annotated POJO
+	/**
+	 * Creates data object from annotated POJO
 	 * 
 	 * @param model
-	 * @param name override name of data storage
-	 * @param exclusion a class specifying keys excluded
+	 * @param name
+	 *            override name of data storage
+	 * @param exclusion
+	 *            a class specifying keys excluded
 	 * @param inclusion
 	 */
 	public DODelegator(T model, String name, Class exclusion, String inclusion) {
@@ -123,13 +131,17 @@ public class DODelegator<T> implements DataObject, DOFactory {
 			throw new IllegalArgumentException("Model class and exclusion class are the same");
 	}
 
-	/** Creates data object from annotated POJO
+	/**
+	 * Creates data object from annotated POJO
 	 * 
 	 * @param model
 	 * @param name
-	 * @param exclusion class with DB annotations forming an exclusion list
-	 * @param exclusioninclusion reduces exclusion list for specified values
-	 * @param inclusion key fields
+	 * @param exclusion
+	 *            class with DB annotations forming an exclusion list
+	 * @param exclusioninclusion
+	 *            reduces exclusion list for specified values
+	 * @param inclusion
+	 *            key fields
 	 */
 	public DODelegator(T model, String name, Class exclusion, String exclusioninclusion, String inclusion) {
 		this(model, name, listOfFields(exclusion, exclusioninclusion), inclusion);
@@ -137,10 +149,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 
 	@Override
 	public boolean containData(String name) {
-		name = normilizeFieldName(name);
-		if (selectedData != null)
-			return selectedData.contains(name);
-		return fieldsMap.containsKey(name);
+		return isOperational(name);
 	}
 
 	@Override
@@ -218,11 +227,11 @@ public class DODelegator<T> implements DataObject, DOFactory {
 	}
 
 	@Override
-	public Object modifyField(String name, Object value) {
+	public Object put(String name, Object value) {
 		name = normilizeFieldName(name);
 		try {
 			java.lang.reflect.Field f = fieldsMap.get(name);
-                        //name = normilizeFieldName(name);
+			//name = normilizeFieldName(name);
 			if (f != null) {
 				Object result = f.get(principal);
 				try {
@@ -230,8 +239,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 				} catch (IllegalArgumentException iae) {
 					DBField ff = f.getAnnotation(DBField.class);
 					if (ff != null && ff.converter() != FieldConverter.class) {
-						f.set(principal, create(ff.converter()).convert(value.toString(),
-								timeZone, locale));
+						f.set(principal, create(ff.converter()).convert(value.toString(), timeZone, locale));
 						return result;
 					}
 					Class t = f.getType();
@@ -297,7 +305,7 @@ public class DODelegator<T> implements DataObject, DOFactory {
 
 	@Override
 	public Object modifyField(Field field, Object value) {
-		return modifyField(field.getName(), value);
+		return put(field.getName(), value);
 	}
 
 	@Override
@@ -305,6 +313,31 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		if (fieldsMap.remove(normilizeFieldName(field.getName())) != null)
 			return field;
 		return null;
+	}
+
+	@Override
+
+	public Object modifyField(String name, Object value) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Object put(Field field, Object value) {
+		return put(field.getName(), value);
+	}
+
+	@Override
+	public String getSql(Field field) {
+		return field.getSql();
+	}
+
+	@Override
+	public boolean isOperational(String name) {
+		name = normilizeFieldName(name);
+		if (selectedData != null)
+			return selectedData.contains(name);
+		return fieldsMap.containsKey(name);
 	}
 
 	/**
@@ -346,7 +379,8 @@ public class DODelegator<T> implements DataObject, DOFactory {
 
 	protected String normilizeFieldName(String fieldName) {
 		if (principal instanceof Coordinator) {
-			return ((DOService)((Coordinator)principal).getService(Coordinator.DOSERVICE)).normalizeElementName(fieldName);
+			return ((DOService) ((Coordinator) principal).getService(Coordinator.DOSERVICE))
+					.normalizeElementName(fieldName);
 		}
 		return fieldName;
 	}
@@ -360,7 +394,8 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		return this;
 	}
 
-	private FieldConverter create(Class<? extends FieldConverter> class1) throws InstantiationException, IllegalAccessException {
+	private FieldConverter create(Class<? extends FieldConverter> class1)
+			throws InstantiationException, IllegalAccessException {
 		if (principal instanceof Coordinator) {
 			try {
 				return class1.getConstructor(Object.class).newInstance(((Coordinator) principal).getModel(null));
@@ -376,5 +411,4 @@ public class DODelegator<T> implements DataObject, DOFactory {
 		}
 		return class1.newInstance();
 	}
-
 }

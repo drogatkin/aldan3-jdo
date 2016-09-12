@@ -81,5 +81,25 @@ public class DataObjectWrapper implements DataObject {
 	public DataObject getWrappedDO() {
 		return innerDO;		
 	}
+
+	@Override
+	public Object put(String name, Object value) {
+		return innerDO.put(name, value);
+	}
+
+	@Override
+	public Object put(Field field, Object value) {
+		return innerDO.put(field, value);
+	}
+
+	@Override
+	public String getSql(Field field) {
+		return innerDO.getSql(field);
+	}
+
+	@Override
+	public boolean isOperational(String name) {
+		return innerDO.isOperational(name);
+	}
 	
 }
