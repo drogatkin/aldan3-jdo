@@ -535,6 +535,7 @@ public class DOService implements ServiceProvider<DOService> {
 	 */
 	public int addObject(DataObject dataObject, DataObject existObject, String keys) throws ProcessException {
 		// TODO add retrieving keys
+		// TODO test for H2 and Oracle
 		/*
 		 * 
 		 * INSERT INTO table_listnames (name, address, tele)
@@ -574,7 +575,7 @@ public class DOService implements ServiceProvider<DOService> {
 		fields = existObject.getFields();
 		first = true;
 		for (Field f : fields) {
-			if (dataObject.meanFieldFilter(f.getName()) == false) // processing keys
+			if (dataObject.isOperational(f.getName()) == false) // processing keys
 				continue;
 			if (first)
 				first = false;
@@ -669,7 +670,7 @@ public class DOService implements ServiceProvider<DOService> {
 		LinkedList<Field> addedKeySet = null;
 		for (Field f : fields) {
 			// excluding keys, if auto incremented
-			if (dataObject.meanFieldFilter(f.getName()) == true /*&& var != 0*/ && f.autoIncremented()!=0)
+			if (dataObject.isOperational(f.getName()) == true /*&& var != 0*/ && f.autoIncremented()!=0)
 				continue;
 			if (first)
 				first = false;
@@ -736,7 +737,7 @@ public class DOService implements ServiceProvider<DOService> {
 				//System.err.printf("check %d%n",c);
 				// excluding what are keys 
 				if (f.getSql() != null && f.getSql().length() > 0 ||
-						dataObject.meanFieldFilter(f.getName()) == true && f.autoIncremented()!=0)
+						dataObject.isOperational(f.getName()) == true && f.autoIncremented()!=0)
 					continue;
 				Object obj = dataObject.get(f.getName());
 				if (obj == null)
@@ -749,7 +750,7 @@ public class DOService implements ServiceProvider<DOService> {
 			case 2:
 				if (updateObject != null)
 					for (Field f : addedKeySet) {
-						if (updateObject.meanFieldFilter(f.getName())) //{System.err.printf(">>>>%s%n", f.getName());
+						if (updateObject.isOperational(f.getName())) //{System.err.printf(">>>>%s%n", f.getName());
 							stm.setObject(c++, Sql.toPreparedSqlValue(updateObject.get(f.getName())));//}
 					}
 				break;
@@ -761,7 +762,7 @@ public class DOService implements ServiceProvider<DOService> {
 					int ki = 1;
 					for (String k : ka) {
 						Object dobj;
-						dataObject.modifyField(k, dobj=rs.getObject(ki++));
+						dataObject.put(k, dobj=rs.getObject(ki++));
 						//System.err.println("Set key "+k+" to "+dobj);
 					}
 				} else {
