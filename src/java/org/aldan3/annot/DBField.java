@@ -77,4 +77,10 @@ public @interface DBField {
 	 * @return
 	 */
 	int precision() default 0;
+	
+	/** allows to specify a specific character set for a column
+	 * It is DB specific
+	 * @return charset which will be applied for a column creation
+	 */
+	String charset() default "";
 }

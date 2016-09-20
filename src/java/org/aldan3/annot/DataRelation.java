@@ -40,4 +40,10 @@ public @interface DataRelation {
 	 */
 	Class <? extends Filter>[] filters() default {};
 	
+	/** allows to specify character set on a table level
+	 * 
+	 * @return
+	 */
+	String charset() default "";
+	
 }

@@ -670,7 +670,9 @@ public class DOService implements ServiceProvider<DOService> {
 		LinkedList<Field> addedKeySet = null;
 		for (Field f : fields) {
 			// excluding keys, if auto incremented
-			if (dataObject.isOperational(f.getName()) == true /*&& var != 0*/ && f.autoIncremented()!=0)
+			// TODO the exclusion of keys is db depend
+			if (dataObject.isOperational(f.getName()) == true /*&& var != 0*/ && f.autoIncremented()!=0 && updateObject==null
+					|| var == 2 && f.autoIncremented()!=0)
 				continue;
 			if (first)
 				first = false;
@@ -686,19 +688,22 @@ public class DOService implements ServiceProvider<DOService> {
 		}
 		if (first)
 			throw new ProcessException("The inserted object "+fields+" doesn't contain any data");
+		Set<Field> updFields = null;
 		switch(var) {
 		case 0: // MySQL 
 			q.append(") values (").append(v).append(')');
 			if (updateObject != null) {
 				v.setLength(0);
-				fillKeyValuePairs(updateObject, v);
+				//fillKeyValuePairs(updateObject, v);
+				fillPreparedKeyValuePairs(updateObject, updFields = updateObject.getFields(),  v);
 				if (v.length() > 0)
 					q.append(" ON DUPLICATE KEY UPDATE ").append(v);
 			}
+			break;
 		case 1:
 			break;
 		case 2:
-			// TODO if keys "" or null, then can be calculated as mean from updateObject
+			// TODO if keys "" or null, then can be calculated as operational  from updateObject
 			if (updateObject != null) {
 				StringBuffer k = new StringBuffer(512);
 				addedKeySet = 
@@ -737,16 +742,31 @@ public class DOService implements ServiceProvider<DOService> {
 				//System.err.printf("check %d%n",c);
 				// excluding what are keys 
 				if (f.getSql() != null && f.getSql().length() > 0 ||
-						dataObject.isOperational(f.getName()) == true && f.autoIncremented()!=0)
+						dataObject.isOperational(f.getName()) == true && f.autoIncremented()!=0 && updateObject==null
+						|| var == 2 && f.autoIncremented()!=0)
 					continue;
 				Object obj = dataObject.get(f.getName());
+				//System.err.printf("set paramd %d for %s = %s%n", c, f.getName(), obj);
 				if (obj == null)
 					stm.setNull(c++, f.getJDBCType());
 				else
 					stm.setObject(c++, Sql.toPreparedSqlValue(obj));
-				//System.err.printf("set paramd %d%n", c);
 			}
 			switch(var) {
+			case 0:
+				if (updateObject != null) {
+					for (Field f : updFields) {
+						if (f.getSql() != null && f.getSql().length() > 0)
+							continue;
+						Object obj = updateObject.get(f.getName());
+						//System.err.printf("set upd %d for %s = %s%n", c, f.getName(), obj);
+						if (obj == null)
+							stm.setNull(c++, f.getJDBCType());
+						else
+							stm.setObject(c++, Sql.toPreparedSqlValue(obj));
+					}
+				}
+				break;
 			case 2:
 				if (updateObject != null)
 					for (Field f : addedKeySet) {
@@ -1024,6 +1044,23 @@ public class DOService implements ServiceProvider<DOService> {
 		return q;
 	}
 	
+	private StringBuffer fillPreparedKeyValuePairs(DataObject dataObject, Set<Field> fields, StringBuffer q) {
+		boolean first = true;
+		for (Field f : fields) {
+			if (first)
+				first = false;
+			else {
+				q.append(", ");
+			}
+			String s = dataObject.getSql(f); 
+			if (s != null && s.length() > 0)
+				q.append(s);
+			else
+				q.append(f.getStoredName()).append("=?");
+		}
+		return q;
+	}
+	
 	private LinkedList<Field> appendKeys(DataObject dataObject, StringBuffer q, StringBuffer v) {
 		if (dataObject == null)
 			return null;
@@ -1031,7 +1068,7 @@ public class DOService implements ServiceProvider<DOService> {
 		boolean first = q.length() == 0;
 		boolean firstVal = v.length() == 0;
 		for (Field f : dataObject.getFields()) {
-			if (dataObject.meanFieldFilter(f.getName())) {
+			if (dataObject.isOperational(f.getName())) {
 				if (first == false) {
 					q.append(',');	
 				} else

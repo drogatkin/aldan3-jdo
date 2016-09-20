@@ -115,6 +115,10 @@ public class Sql {
 				return "'" + Arrays.toString((long[]) data) + "'";
 			else if (data instanceof double[])
 				return "'" + Arrays.toString((double[]) data) + "'";
+			else if (data instanceof byte[])
+				return "'" + Arrays.toString((byte[]) data) + "'";
+			else if (data instanceof float[])
+				return "'" + Arrays.toString((float[]) data) + "'";
 			else
 				return "'" + escapeQuote(Arrays.toString((Object[]) data)) + "'";
 		return "'" + escapeQuote(data.toString()) + "'";
