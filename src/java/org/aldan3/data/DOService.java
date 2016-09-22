@@ -480,6 +480,7 @@ public class DOService implements ServiceProvider<DOService> {
 	}
 	
 	public int updateObjectsLike(DataObject dataObjectWithKeys, boolean invert) throws ProcessException {
+		// TODO implement using prepared statement
 		return 0;
 	}
 
