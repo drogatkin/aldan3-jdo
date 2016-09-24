@@ -481,7 +481,44 @@ public class DOService implements ServiceProvider<DOService> {
 	
 	public int updateObjectsLike(DataObject dataObjectWithKeys, boolean invert) throws ProcessException {
 		// TODO implement using prepared statement
-		return 0;
+		StringBuffer q = new StringBuffer("");
+		StringBuffer wc = new StringBuffer(128);
+		q.append("update ").append(dataObjectWithKeys.getName()).append(" set ");
+		Set<Field> fields = makeUpdateQueryParts(dataObjectWithKeys, q, wc, invert);
+		q.append(wc);
+		Connection con = null;
+		PreparedStatement stm = null;
+		try {
+			con = getConnection();
+			System.err.printf("Prepared q: %s%n", q);
+			stm = con.prepareStatement(q.toString());
+			int c = 1;
+			for (Field f : fields) {
+				String name = f.getName();
+				Object obj = dataObjectWithKeys.get(name);
+				// TODO rise an exception if not singular
+				if (dataObjectWithKeys.isOperational(name)) {
+					String sql = f.getSql();
+					if (sql != null && sql.length() > 0)
+						continue;
+					if (obj == null)
+						stm.setNull(c++, f.getJDBCType());
+					else
+						stm.setObject(c++, Sql.toPreparedSqlValue(obj));
+				} else {
+					if (obj == null)
+						stm.setNull(c++, f.getJDBCType());
+					else
+						stm.setObject(c++, Sql.toPreparedSqlValue(obj));
+				}
+			}
+			return stm.executeUpdate();
+		} catch (Exception e) {
+			Log.l.log(Log.ERROR, "", "q: %s = ", e, q);
+			throw new ProcessException("SQL exception happened in " + q, e);
+		} finally {
+			release(con, stm);
+		}
 	}
 
 	/** updates table records not matching pattern object by data object
@@ -968,7 +1005,7 @@ public class DOService implements ServiceProvider<DOService> {
 				wc.append(f.getSql()); // TODO think if it should look like wc.append(name).append(eq).append(f.getSql()); 
 				if (firstClause)
 					firstClause = false;
-			} else if (dataObject.meanFieldFilter(name)) {
+			} else if (dataObject.isOperational(name)) {
 				Object value = dataObject.get(name);
 				if (value != null) {
 					if (firstClause == false)
@@ -1023,6 +1060,39 @@ public class DOService implements ServiceProvider<DOService> {
 			q.append(f.getStoredName());
 			if (first)
 				first = false;
+		}
+		return fields;
+	}
+	
+	private Set<Field> makeUpdateQueryParts(DataObject jdo, StringBuffer q, StringBuffer wc, boolean inverse) {
+		Set<Field> fields = jdo.getFields();
+		boolean first = true, firstClause = true;
+		String eq = inverse ? "!=" : "=";
+		for (Field f : fields) {
+			String name = f.getName();
+			String sname = f.getStoredName();
+			if (sname == null || sname.length() == 0)
+				sname = name;		
+			if (jdo.isOperational(name)) {
+				if (firstClause == false)
+					wc.append(" and ");
+				else
+					wc.append(" where ");
+				String sql = f.getSql();
+				if (sql != null && sql.length() > 0) 
+					wc.append(jdo.getSql(f));
+				else
+				wc.append(sname).append(eq).append('?');
+				if (firstClause)
+					firstClause = false;
+			} else {
+				if (first == false)
+					q.append(',');
+				// TODO think of  String sql = f.getSql();
+				q.append(sname).append("=?");
+				if (first)
+					first = false;
+			}
 		}
 		return fields;
 	}
