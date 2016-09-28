@@ -710,7 +710,7 @@ public class DOService implements ServiceProvider<DOService> {
 			// excluding keys, if auto incremented
 			// TODO the exclusion of keys is db depend
 			if (dataObject.isOperational(f.getName()) == true /*&& var != 0*/ && f.autoIncremented()!=0 && updateObject==null
-					|| var == 2 && f.autoIncremented()!=0)
+					&& var != 2)
 				continue;
 			if (first)
 				first = false;
@@ -781,7 +781,7 @@ public class DOService implements ServiceProvider<DOService> {
 				// excluding what are keys 
 				if (f.getSql() != null && f.getSql().length() > 0 ||
 						dataObject.isOperational(f.getName()) == true && f.autoIncremented()!=0 && updateObject==null
-						|| var == 2 && f.autoIncremented()!=0)
+						&& var != 2)
 					continue;
 				Object obj = dataObject.get(f.getName());
 				//System.err.printf("set paramd %d for %s = %s%n", c, f.getName(), obj);
