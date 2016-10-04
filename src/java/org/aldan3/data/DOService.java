@@ -490,27 +490,38 @@ public class DOService implements ServiceProvider<DOService> {
 		PreparedStatement stm = null;
 		try {
 			con = getConnection();
-			System.err.printf("Prepared q: %s%n", q);
+			//System.err.printf("Prepared q: %s%n", q);
 			stm = con.prepareStatement(q.toString());
 			int c = 1;
+			// first iteration for set values
 			for (Field f : fields) {
 				String name = f.getName();
+				if (dataObjectWithKeys.isOperational(name))
+					continue;
 				Object obj = dataObjectWithKeys.get(name);
 				// TODO rise an exception if not singular
-				if (dataObjectWithKeys.isOperational(name)) {
-					String sql = f.getSql();
-					if (sql != null && sql.length() > 0)
-						continue;
-					if (obj == null)
-						stm.setNull(c++, f.getJDBCType());
-					else
-						stm.setObject(c++, Sql.toPreparedSqlValue(obj));
-				} else {
-					if (obj == null)
-						stm.setNull(c++, f.getJDBCType());
-					else
-						stm.setObject(c++, Sql.toPreparedSqlValue(obj));
-				}
+				
+				//System.err.printf("Prepared put val: %s for %s%n", obj, name);
+				if (obj == null)
+					stm.setNull(c++, f.getJDBCType());
+				else
+					stm.setObject(c++, Sql.toPreparedSqlValue(obj));
+			}
+			// second keys
+			for (Field f : fields) {
+				String name = f.getName();
+				if (!dataObjectWithKeys.isOperational(name))
+					continue;
+				Object obj = dataObjectWithKeys.get(name);
+
+				//System.err.printf("Prepared put key: %s for %s%n", obj, name);
+				String sql = f.getSql();
+				if (sql != null && sql.length() > 0)
+					continue;
+				if (obj == null)
+					stm.setNull(c++, f.getJDBCType());
+				else
+					stm.setObject(c++, Sql.toPreparedSqlValue(obj));
 			}
 			return stm.executeUpdate();
 		} catch (Exception e) {

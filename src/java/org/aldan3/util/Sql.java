@@ -169,7 +169,7 @@ public class Sql {
 	public static void fillDO(ResultSet rs, DataObject dataObject) throws SQLException {
 		Set<Field> fields = dataObject.getFields();
 		for (Field f : fields) {
-			dataObject.modifyField(f, rs.getObject(f.getStoredName()));
+			dataObject.put(f, rs.getObject(f.getStoredName()));
 		}
 	}
 
