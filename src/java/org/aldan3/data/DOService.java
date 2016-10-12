@@ -59,6 +59,7 @@ public class DOService implements ServiceProvider<DOService> {
 			con = getConnection();
 			stm = con.createStatement();
 			rs = stm.executeQuery(q.append(" from ").append(dataObject.getName()).append(wc).toString());
+			//System.err.printf("q: %s%n", q);
 			if (rs.next()) {
 				DataObject result = Sql.createDO(rs, dataObject instanceof DOFactory ? (DOFactory) dataObject
 						: new DOFactory() {
@@ -1003,6 +1004,7 @@ public class DOService implements ServiceProvider<DOService> {
 		boolean first = true, firstClause = true;
 		String eq = inverse ? "!=" : "=";
 		String in = inverse ? " not in (" : " in (";
+		String nullVal = inverse ? " is not NULL" : " is NULL";
 		for (Field f : fields) {
 			String name = f.getName();
 			if (first == false)
@@ -1018,11 +1020,11 @@ public class DOService implements ServiceProvider<DOService> {
 					firstClause = false;
 			} else if (dataObject.isOperational(name)) {
 				Object value = dataObject.get(name);
+				if (firstClause == false)
+					wc.append(" and ");
+				else
+					wc.append(" where ");
 				if (value != null) {
-					if (firstClause == false)
-						wc.append(" and ");
-					else
-						wc.append(" where ");
 					Class<?> vc = value.getClass();
 					if (vc.isArray()) {
 						if (vc.getComponentType().isPrimitive()) {
@@ -1065,8 +1067,8 @@ public class DOService implements ServiceProvider<DOService> {
 					if (firstClause)
 						firstClause = false;
 				} else
-					//  else field isnull
-					Log.l.error("Field " + name + " is NULL, although is claimed containing data", null);
+					wc.append(name).append(nullVal);
+					//Log.l.error("Field " + name + " is NULL, although is claimed containing data", null);
 			}
 			q.append(f.getStoredName());
 			if (first)
