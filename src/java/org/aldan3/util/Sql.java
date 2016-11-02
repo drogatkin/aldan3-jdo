@@ -43,7 +43,7 @@ public class Sql {
 	 * @return a string with single quote escaped
 	 */
 	public static String escapeQuote(String _orig) {
-		// TODO make it portable between databaes 
+		// TODO make it portable between databases 
 		if (_orig == null)
 			return _orig;
 		StringBuffer result = new StringBuffer(_orig.length() + 10);
@@ -158,6 +158,11 @@ public class Sql {
 		return data.toString();
 	}
 	
+	/** converts JJava object to a value sutable to set in a prepared statement
+	 * 
+	 * @param data
+	 * @return
+	 */
 	public static Object toPreparedSqlValue(Object data) {
 		if (data instanceof Boolean) 
 			return ((Boolean) data).booleanValue() ? "T" : "F";
@@ -188,21 +193,21 @@ public class Sql {
 				result.defineField(f);
 			int type = metadata.getColumnType(c);
 			if (type == Types.DATE || type == Types.TIMESTAMP || type == Types.TIME)
-				result.modifyField(f, rs.getTimestamp(c));
+				result.put(f, rs.getTimestamp(c));
 			else if (type == Types.CLOB || type == Types.LONGNVARCHAR || type == Types.LONGVARCHAR) {
 				Clob clob = null;
 				try {
 					clob = rs.getClob(c);
 					if (clob != null) // TODO throw an exception if CLOB is too big
-						result.modifyField(f, clob.getSubString(1, (int)clob.length()));
+						result.put(f, clob.getSubString(1, (int)clob.length()));
 					else
-						result.modifyField(f, null);
+						result.put(f, null);
 				} finally {
 					if (clob != null)
 						clob.free();
 				}
 			} else
-				result.modifyField(f, rs.getObject(c));
+				result.put(f, rs.getObject(c));
 		}
 		return result;
 	}
