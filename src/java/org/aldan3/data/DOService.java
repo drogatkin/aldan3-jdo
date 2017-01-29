@@ -1013,17 +1013,19 @@ public class DOService implements ServiceProvider<DOService> {
 			if (f.getSql() != null && f.getSql().length() > 0) {
 				if (firstClause == false)
 					wc.append(" and ");
-				else
+				else {
 					wc.append(" where ");
-				wc.append(f.getSql()); // TODO think if it should look like wc.append(name).append(eq).append(f.getSql()); 
-				if (firstClause)
 					firstClause = false;
+				}
+				wc.append(f.getSql()); // TODO think if it should look like wc.append(name).append(eq).append(f.getSql());					
 			} else if (dataObject.isOperational(name)) {
 				Object value = dataObject.get(name);
 				if (firstClause == false)
 					wc.append(" and ");
-				else
+				else {
 					wc.append(" where ");
+					firstClause = false;
+				}
 				if (value != null) {
 					Class<?> vc = value.getClass();
 					if (vc.isArray()) {
@@ -1064,8 +1066,6 @@ public class DOService implements ServiceProvider<DOService> {
 						}
 					} else
 						wc.append(name).append(eq).append(Sql.toSqlString(value, getInlineDatePattern()));
-					if (firstClause)
-						firstClause = false;
 				} else
 					wc.append(name).append(nullVal);
 					//Log.l.error("Field " + name + " is NULL, although is claimed containing data", null);
