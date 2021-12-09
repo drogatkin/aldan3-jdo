@@ -228,6 +228,7 @@ public class DOService implements ServiceProvider<DOService> {
 	 * @param dataObject
 	 * @throws ProcessException
 	 */
+	/// TODO add constraint for created storage
 	public void createStorageFor(DataObject dataObject) throws ProcessException {
 		createStorageFor(dataObject.getName(), dataObject.getFields());
 	}
@@ -334,10 +335,11 @@ public class DOService implements ServiceProvider<DOService> {
 				}
 			} else {
 				if(cf.getSize() != f.getSize()) {
-					if(!("varchar".equals(cf.getType()) && "varchar".equals(f.getType())))
+					//System.err.printf("Size difference for alter "+cf.getType()+" and "+f.getType()+"%n");
+					if(!("varchar".equalsIgnoreCase(cf.getType()) && ("varchar".equalsIgnoreCase(f.getType()) || "text".equalsIgnoreCase(f.getType()))))
 						continue;	
 					if (alterModif == null)
-						alterModif = new StringBuilder("ALTER TABLE ").append(name).append(" MODIFY ");
+						alterModif = new StringBuilder("ALTER TABLE ").append(name).append(modifyColumn());
 					else
 						alterModif.append(", ");
 					try {
@@ -1271,6 +1273,10 @@ public class DOService implements ServiceProvider<DOService> {
 	protected boolean inlineConstraints() {
 		// TODO actually provide list of constraints
 		return true;
+	}
+	
+	protected String modifyColumn () {
+		return " MODIFY ";
 	}
 
 }

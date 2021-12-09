@@ -23,6 +23,7 @@ public @interface DataRelation {
 	String query() default "";
 
 	/** provides names of key fields
+	 * it generates UNIQUE KEY `table_index` (`keys[0]`,`keys[1]` ...) constraint
 	 * 
 	 * @return
 	 */
@@ -46,4 +47,9 @@ public @interface DataRelation {
 	 */
 	String charset() default "";
 	
+	/** specifies additional constraints
+	 * executed after storage creation
+	 * @return
+	 */
+	String [] postAlter() default {};
 }

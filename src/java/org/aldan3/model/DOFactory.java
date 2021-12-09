@@ -6,6 +6,7 @@
  */
 package org.aldan3.model;
 
+@FunctionalInterface
 public interface DOFactory <D extends DataObject>{
 	/** creates data object which can be filled as part of storage operations
 	 * 
