@@ -9,12 +9,12 @@ package org.aldan3.model;
 import org.aldan3.data.DOService;
 
 /** used for obtaining references to services and other data structures from data object
- * when incetion isn't used, or not allowed
+ * when injection isn't used, or not allowed
  * 
  * @author dmitriy
  *
  */
-public interface Coordinator /*<M,S>*/ {
+public interface Coordinator {
 	public static final String DOSERVICE = DOService.NAME;
 
 	Object getModel(String name);
