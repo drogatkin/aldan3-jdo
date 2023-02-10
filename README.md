@@ -44,8 +44,10 @@ try {
 ### add data
 ```java
 MyFirstJDO jdo = new MyFirstJDO();
-
 // fill fields
+jdo.name = "Profi";
+jdo.date = new Date();
+
 try {
    getDOService().addObject(new DODelegator(jdo, null, "", "id"));
    log("new id: %d", null, jdo.id);

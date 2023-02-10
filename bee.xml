@@ -14,7 +14,7 @@
       ]>
 <!-- $Id: bee.xml,v 1.6 2012/04/17 20:05:42 dmitriy Exp $
    make file used for "generic" project
-   Copyright (c) 2004-2015 Dmitriy Rogatkin    -->
+   Copyright (c) 2004-2023 Dmitriy Rogatkin    -->
 
 <bee name="&project;" type="project">
   &env;
