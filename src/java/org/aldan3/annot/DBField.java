@@ -83,4 +83,10 @@ public @interface DBField {
 	 * @return charset which will be applied for a column creation
 	 */
 	String charset() default "";
+	
+	/** in conjunction with unique to make case insensitive
+	 * 
+	 * @return
+	 */
+	boolean nocase () default false;
 }
