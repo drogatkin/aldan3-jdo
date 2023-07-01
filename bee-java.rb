@@ -34,6 +34,10 @@ target compile:. {
          ${build_directory},
         -cp,
          ${build_directory},
+         -source,
+         8,
+         -target,
+         8,
          main src
        )     
       if {
