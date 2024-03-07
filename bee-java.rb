@@ -10,6 +10,9 @@ resources ="${domain}.${project}.resources"
 manifestf =""
 main_class= "${domain}.${project}.Main"
 
+env =../rust_util/src/script/common-java.7b:file
+include(env) # comment out when a standard java installation is used
+
 target clean {
     dependency {true}
     exec rm  (
