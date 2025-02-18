@@ -95,6 +95,7 @@ public @interface FormField {
 	 * 
 	 * @return
 	 */
+    // TODO change to array for example readonly and hidden
 	FieldType presentType() default FieldType.Editable;
 
 	/** Defines presentation size

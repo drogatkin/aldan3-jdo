@@ -59,7 +59,7 @@ public class AnnotField implements Field {
 			return dbField.size();
 		if (ff != null && ff.presentSize() > 0)
 			return ff.presentSize();
-		if (objectType == Date.class)
+		if (objectType == Date.class || objectType == long.class || objectType == int.class)
 			return 0;
 		return 1;
 	}
